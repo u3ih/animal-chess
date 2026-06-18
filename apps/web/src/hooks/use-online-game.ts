@@ -1,5 +1,6 @@
 "use client";
 
+import type { Player } from "@animal-chess/game-core";
 import type {
   ClientToServerEvents,
   FriendRequest,
@@ -11,36 +12,52 @@ import type {
 } from "@animal-chess/net-protocol";
 import { useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
+import { safeRandomUUID } from "../lib/uuid";
 import type { PlayerIdentity } from "./use-player-identity";
 
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
+
+/** i18n keys (under `onlineStatus.*`) — translated by the consumer so the hook stays framework-light. */
+export type OnlineStatusKey =
+  | "onlineStatus.disconnected"
+  | "onlineStatus.connected"
+  | "onlineStatus.waiting"
+  | "onlineStatus.waitingPlayer"
+  | "onlineStatus.inMatch"
+  | "onlineStatus.roomError"
+  | "onlineStatus.moveRejected";
 
 export type { FriendRequest, PresenceEntry, RoomInvite } from "@animal-chess/net-protocol";
 
 export function useOnlineGame(identity?: PlayerIdentity) {
   const socketRef = useRef<GameSocket | undefined>(undefined);
   const [snapshot, setSnapshot] = useState<RoomSnapshot>();
-  const [status, setStatus] = useState("Chưa kết nối");
+  // Clock is kept out of `snapshot` so per-second ticks don't replace the game-state object
+  // (which would re-render the whole board/3D scene every second).
+  const [timer, setTimer] = useState<Record<Player, number>>({ red: 0, blue: 0 });
+  const [status, setStatus] = useState<OnlineStatusKey>("onlineStatus.disconnected");
   const [presence, setPresence] = useState<PresenceEntry[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [acceptedFriends, setAcceptedFriends] = useState<string[]>([]);
   const [invites, setInvites] = useState<RoomInvite[]>([]);
   const [fallbackIdentity] = useState(() => ({
-    userId: crypto.randomUUID(),
+    userId: safeRandomUUID(),
     username: `Khách ${Math.floor(Math.random() * 900 + 100)}`
   }));
   const player = identity ?? fallbackIdentity;
 
   useEffect(() => {
     const nextSocket: GameSocket = io();
-    nextSocket.on("connect", () => setStatus("Đã kết nối"));
-    nextSocket.on("matchmaking:waiting", () => setStatus("Đang chờ đối thủ"));
+    nextSocket.on("connect", () => setStatus("onlineStatus.connected"));
+    nextSocket.on("matchmaking:waiting", () => setStatus("onlineStatus.waiting"));
     nextSocket.on("game:snapshot", (payload: RoomSnapshot) => {
       setSnapshot(payload);
-      setStatus(payload.players.length < 2 ? "Đang chờ người chơi" : "Đang trong trận");
+      setTimer(payload.timer);
+      setStatus(payload.players.length < 2 ? "onlineStatus.waitingPlayer" : "onlineStatus.inMatch");
     });
-    nextSocket.on("room:error", () => setStatus("Không thể vào phòng"));
-    nextSocket.on("game:rejected", () => setStatus("Nước đi bị từ chối"));
+    nextSocket.on("game:clock", setTimer);
+    nextSocket.on("room:error", () => setStatus("onlineStatus.roomError"));
+    nextSocket.on("game:rejected", () => setStatus("onlineStatus.moveRejected"));
     nextSocket.on("social:presence", setPresence);
     nextSocket.on("social:requests", setFriendRequests);
     nextSocket.on("social:friend-accepted", (username: string) =>
@@ -60,6 +77,7 @@ export function useOnlineGame(identity?: PlayerIdentity) {
 
   return {
     snapshot,
+    timer,
     status,
     localPlayer: snapshot?.players.find((entry) => entry.userId === player.userId),
     presence,
@@ -69,7 +87,10 @@ export function useOnlineGame(identity?: PlayerIdentity) {
     createRoom: () => socketRef.current?.emit("room:create", player),
     joinRoom: (roomId: string) => socketRef.current?.emit("room:join", { roomId, ...player }),
     quickMatch: () => socketRef.current?.emit("matchmaking:join", player),
-    leaveMatchmaking: () => socketRef.current?.emit("matchmaking:leave"),
+    cancelMatch: () => {
+      socketRef.current?.emit("matchmaking:leave");
+      setStatus("onlineStatus.connected");
+    },
     submitMove: (move: MovePayload) => socketRef.current?.emit("game:move", move),
     rematch: () => socketRef.current?.emit("game:rematch"),
     sendChat: (text: string) => socketRef.current?.emit("chat:send", { ...player, text }),

@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useState } from "react";
+import { safeRandomUUID } from "../lib/uuid";
 
 export type PlayerIdentity = {
   userId: string;
@@ -40,7 +41,7 @@ export function usePlayerIdentity(usernameOverride?: string) {
       : undefined,
     signInGuest: (username: string) => {
       const nextGuest = {
-        userId: crypto.randomUUID(),
+        userId: safeRandomUUID(),
         username: username.trim(),
         kind: "guest" as const
       };

@@ -1,10 +1,13 @@
 "use client";
 
+import { useTranslation } from "@animal-chess/i18n";
+import { Button, Input, Panel } from "@animal-chess/ui";
 import { UserCog } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { type FormEvent, useEffect, useState } from "react";
 
 export function ProfilePanel({ onUsernameChange }: { onUsernameChange?: (username: string) => void }) {
+  const { t } = useTranslation();
   const { data: session } = useSession();
   const [username, setUsername] = useState("");
   const [saved, setSaved] = useState(false);
@@ -33,13 +36,9 @@ export function ProfilePanel({ onUsernameChange }: { onUsernameChange?: (usernam
   if (!session?.user) return null;
 
   return (
-    <form className="profile-panel" onSubmit={save}>
-      <div className="panel-title">
-        <UserCog />
-        Hồ sơ
-      </div>
-      <input value={username} onChange={(event) => setUsername(event.target.value)} />
-      <button type="submit">{saved ? "Đã lưu" : "Lưu tên"}</button>
-    </form>
+    <Panel as="form" className="profile-panel" onSubmit={save} icon={<UserCog />} title={t("profile.title")}>
+      <Input value={username} onChange={(event) => setUsername(event.target.value)} />
+      <Button type="submit">{saved ? t("profile.saved") : t("profile.save")}</Button>
+    </Panel>
   );
 }

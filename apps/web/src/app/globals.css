@@ -68,7 +68,7 @@ select:focus-visible {
 
 .topbar,
 .arena {
-  max-width: 1440px;
+  max-width: 1680px;
   margin: 0 auto;
 }
 
@@ -111,7 +111,7 @@ select:focus-visible {
 }
 
 .match-summary {
-  max-width: 1440px;
+  max-width: 1680px;
   margin: 0 auto 18px;
   display: flex;
   align-items: center;
@@ -166,10 +166,25 @@ select:focus-visible {
 }
 
 .arena {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(220px, 260px) minmax(520px, 1fr) minmax(260px, 320px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
   gap: 18px;
   align-items: start;
+}
+
+/* the two side panels live in one rail (right column on desktop, a bottom sheet on mobile) */
+.rails {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+/* drawer chrome: only shown once .rails becomes an off-canvas sheet (mobile) */
+.rails-head,
+.drawer-toggle,
+.drawer-scrim {
+  display: none;
 }
 
 .side-panel,
@@ -412,7 +427,7 @@ select:focus-visible {
   display: grid;
   justify-items: center;
   gap: 12px;
-  --board-width: min(720px, 100%, calc((100vh - 260px) * 7 / 9));
+  --board-width: min(1040px, 100%, calc((100vh - 180px) * 7 / 8));
 }
 
 .board-topline {
@@ -486,7 +501,7 @@ select:focus-visible {
 .board-3d {
   position: relative;
   width: var(--board-width);
-  height: min(74vh, calc(var(--board-width) * 1.16));
+  height: min(86vh, calc(var(--board-width) * 1.12));
   border-radius: 16px;
   overflow: hidden;
   background: radial-gradient(120% 120% at 50% 18%, rgba(54, 74, 38, 0.5), rgba(8, 12, 8, 0.62));
@@ -510,6 +525,137 @@ select:focus-visible {
   height: 100%;
   color: var(--muted);
   font-size: 14px;
+}
+
+/* direction pad: floats at the viewport corner while a piece is selected, so it's
+   always thumb-reachable even when the large board scrolls past the fold. */
+.board-dpad {
+  position: fixed;
+  right: 26px;
+  bottom: 26px;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  grid-template-rows: repeat(3, 44px);
+  gap: 6px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 233, 168, 0.28);
+  background: rgba(12, 18, 12, 0.66);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  animation: dpad-in 0.18s ease-out;
+}
+
+@keyframes dpad-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.94);
+  }
+}
+
+.board-dpad button {
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    transform 0.08s ease;
+}
+
+.board-dpad button:hover:not(:disabled) {
+  background: rgba(231, 196, 109, 0.32);
+  color: #1c2114;
+}
+
+.board-dpad button:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.board-dpad button:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.board-dpad svg {
+  width: 22px;
+  height: 22px;
+}
+
+.board-dpad .dpad-up {
+  grid-area: 1 / 2;
+}
+.board-dpad .dpad-left {
+  grid-area: 2 / 1;
+}
+.board-dpad .dpad-right {
+  grid-area: 2 / 3;
+}
+.board-dpad .dpad-down {
+  grid-area: 3 / 2;
+}
+.board-dpad .dpad-core {
+  grid-area: 2 / 2;
+  display: grid;
+  place-items: center;
+  color: var(--gold);
+}
+
+/* per-move countdown clock above the board */
+.move-clock {
+  width: var(--board-width);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: rgba(18, 29, 21, 0.78);
+  backdrop-filter: blur(10px);
+}
+
+.move-clock .clock-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+.move-clock .clock-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  font-size: 15px;
+  min-width: 38px;
+}
+
+.move-clock.urgent .clock-time {
+  color: #ff7a5f;
+}
+
+.move-clock .clock-bar {
+  position: relative;
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.move-clock .clock-fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8fc15a, #e7c46d);
+  transition: transform 0.9s linear;
+}
+
+.move-clock.urgent .clock-fill {
+  background: linear-gradient(90deg, #f0a35f, #ff5f5f);
 }
 
 .turn-banner {
@@ -738,25 +884,112 @@ select:focus-visible {
   }
 
   .board-stage {
-    order: -1;
     overflow-x: visible;
-    --board-width: min(720px, calc(100vw - 40px));
+    --board-width: min(900px, calc(100vw - 40px));
   }
 
   .board-3d {
     width: var(--board-width);
-    height: min(60vh, calc(var(--board-width) * 1.05));
+    height: min(72vh, calc(var(--board-width) * 1.18));
   }
 
   .board-topline,
-  .map-inspector,
   .move-tray {
     width: var(--board-width);
   }
 
+  /* declutter: history/inspector/secondary stats move into the drawer's panels */
+  .board-topline,
+  .map-inspector,
+  .move-tray {
+    display: none;
+  }
+
+  /* .rails turns into a bottom sheet that slides up over the board */
+  .rails {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    max-height: 86vh;
+    overflow-y: auto;
+    padding: 14px;
+    gap: 14px;
+    background: rgba(10, 16, 11, 0.97);
+    border-top: 1px solid var(--panel-border);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.55);
+    transform: translateY(105%);
+    transition: transform 0.28s ease;
+  }
+
+  .rails.open {
+    transform: none;
+  }
+
+  .rails-head {
+    position: sticky;
+    top: -14px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -14px -14px 2px;
+    padding: 12px 14px;
+    background: rgba(10, 16, 11, 0.98);
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  .drawer-toggle {
+    position: fixed;
+    left: 18px;
+    bottom: 22px;
+    z-index: 50;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 46px;
+    padding: 0 16px;
+    border-radius: 999px;
+    background: rgba(12, 18, 12, 0.82);
+    border: 1px solid rgba(255, 233, 168, 0.32);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    font-weight: 700;
+  }
+
+  .drawer-toggle svg {
+    width: 20px;
+    height: 20px;
+    color: var(--gold);
+  }
+
+  .drawer-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: rgba(4, 6, 4, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .drawer-scrim.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .side-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
+    background: transparent;
+    border: 0;
+    backdrop-filter: none;
+    padding: 0;
   }
 }
 
@@ -770,7 +1003,7 @@ select:focus-visible {
   }
 
   .board-3d {
-    height: 54vh;
+    height: 64vh;
   }
 
   .topbar {
@@ -790,18 +1023,8 @@ select:focus-visible {
     justify-content: center;
   }
 
-  .board-topline,
-  .map-inspector,
-  .move-tray {
+  .board-topline {
     width: var(--board-width);
-  }
-
-  .map-inspector {
-    grid-template-columns: 1fr;
-  }
-
-  .side-panel {
-    grid-template-columns: 1fr;
   }
 
   .move-tray ol {

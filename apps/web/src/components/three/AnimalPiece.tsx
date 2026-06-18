@@ -2,7 +2,7 @@
 
 import type { Piece } from "@animal-chess/game-core";
 import { type ThreeEvent, useFrame } from "@react-three/fiber";
-import { useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import type * as THREE from "three";
 import { AnimalModel } from "./animal-meshes";
 import { tileToWorld } from "./coords";
@@ -10,19 +10,27 @@ import { tileToWorld } from "./coords";
 const BASE_SCALE = 0.82;
 const EXIT_DURATION = 0.42;
 
-export function AnimalPiece({
+/** Bright ground ring under the local player's own pieces — the at-a-glance "these are yours" cue. */
+const MINE_RING: Record<Piece["owner"], string> = { red: "#ff8a5f", blue: "#6fa8ff" };
+
+export const AnimalPiece = memo(function AnimalPiece({
   piece,
+  label,
   selected,
   active,
   interactive,
+  mine,
   exiting,
   onSelect,
   onExitDone
 }: {
   piece: Piece;
+  label: string;
   selected: boolean;
   active: boolean;
   interactive: boolean;
+  /** True when this piece belongs to the local player — gets a persistent team ring. */
+  mine?: boolean;
   exiting?: boolean;
   onSelect: (piece: Piece) => void;
   onExitDone?: (id: string) => void;
@@ -81,13 +89,18 @@ export function AnimalPiece({
       }}
       onPointerOut={() => setHovered(false)}
     >
-      <AnimalModel kind={piece.kind} owner={piece.owner} />
+      <AnimalModel kind={piece.kind} owner={piece.owner} label={label} />
       {selected ? (
         <mesh position={[0, -0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.42, 0.52, 32]} />
           <meshBasicMaterial color="#ffe9a8" transparent opacity={0.85} />
         </mesh>
+      ) : mine ? (
+        <mesh position={[0, -0.11, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.46, 0.6, 36]} />
+          <meshBasicMaterial color={MINE_RING[piece.owner]} transparent opacity={0.55} />
+        </mesh>
       ) : null}
     </group>
   );
-}
+});

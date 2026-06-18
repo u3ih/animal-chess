@@ -1,6 +1,8 @@
 "use client";
 
 import type { Player } from "@animal-chess/game-core";
+import { useTranslation } from "@animal-chess/i18n";
+import { Button, Modal } from "@animal-chess/ui";
 import { Home, RefreshCw, Trophy } from "lucide-react";
 
 export function WinOverlay({
@@ -18,33 +20,37 @@ export function WinOverlay({
   onRematch: () => void;
   onMenu: () => void;
 }) {
-  const winnerLabel = winner === "red" ? "Đỏ" : "Xanh";
-  const reasonLabel = reason === "den" ? "tiến vào hang đối thủ" : "ăn hết quân địch";
+  const { t } = useTranslation();
+  const winnerLabel = t(winner === "red" ? "colors.red" : "colors.blue");
+  const reasonLabel = t(reason === "den" ? "winReasonLong.den" : "winReasonLong.elimination");
 
   return (
-    <div className="modal-backdrop win-backdrop" role="alertdialog" aria-modal="true" aria-label="Kết quả ván đấu">
-      <div className={`modal-card win-card ${winner}`}>
-        <div className="win-trophy">
-          <Trophy />
-        </div>
-        <p className="win-eyebrow">Kết thúc ván</p>
-        <h2>{winnerLabel} chiến thắng</h2>
-        <p className="win-reason">Thắng bằng cách {reasonLabel}.</p>
-        <div className="win-actions">
-          {mode === "online" ? (
-            <button type="button" className="primary" onClick={onRematch}>
-              <RefreshCw /> Tái đấu
-            </button>
-          ) : (
-            <button type="button" className="primary" onClick={onNewGame}>
-              <RefreshCw /> Ván mới
-            </button>
-          )}
-          <button type="button" onClick={onMenu}>
-            <Home /> Về menu
-          </button>
-        </div>
+    <Modal
+      ariaLabel={t("win.ariaLabel")}
+      role="alertdialog"
+      backdropClassName="win-backdrop"
+      className={`win-card ${winner}`}
+    >
+      <div className="win-trophy">
+        <Trophy />
       </div>
-    </div>
+      <p className="win-eyebrow">{t("win.eyebrow")}</p>
+      <h2>{t("win.title", { color: winnerLabel })}</h2>
+      <p className="win-reason">{t("win.reason", { reason: reasonLabel })}</p>
+      <div className="win-actions">
+        {mode === "online" ? (
+          <Button variant="primary" onClick={onRematch} icon={<RefreshCw />}>
+            {t("win.rematch")}
+          </Button>
+        ) : (
+          <Button variant="primary" onClick={onNewGame} icon={<RefreshCw />}>
+            {t("win.newGame")}
+          </Button>
+        )}
+        <Button onClick={onMenu} icon={<Home />}>
+          {t("win.menu")}
+        </Button>
+      </div>
+    </Modal>
   );
 }

@@ -50,7 +50,7 @@ const rooms = new Map<string, Room>();
 const queue: PlayerSlot[] = [];
 const presence = new Map<string, PresenceRecord>();
 const friendRequests = new Map<string, FriendRequest[]>();
-const ROOM_SECONDS = 5 * 60;
+const MOVE_SECONDS = 90;
 
 function code(): string {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -68,6 +68,11 @@ function roomSnapshot(room: Room): RoomSnapshot {
 
 function emitRoom(io: IO, room: Room) {
   io.to(room.id).emit("game:snapshot", roomSnapshot(room));
+}
+
+/** Per-second clock tick only — keeps the snapshot (and thus the board) referentially stable. */
+function emitClock(io: IO, room: Room) {
+  io.to(room.id).emit("game:clock", room.timer);
 }
 
 function joinRoom(socket: IOSocket, room: Room, player: PlayerSlot) {
@@ -112,8 +117,12 @@ export function registerRealtimeServer(io: IO) {
           ...room.state,
           status: { state: "won", winner: room.state.turn === "red" ? "blue" : "red", reason: "elimination" }
         };
+        // State changed (game over) — push the full snapshot so the board updates.
+        emitRoom(io, room);
+      } else {
+        // Normal tick: only the lightweight clock, so the board stays stable and does not re-render.
+        emitClock(io, room);
       }
-      emitRoom(io, room);
     }
   }, 1000);
 
@@ -137,7 +146,7 @@ export function registerRealtimeServer(io: IO) {
         players: [],
         state: createInitialState(),
         rematch: new Set(),
-        timer: { red: ROOM_SECONDS, blue: ROOM_SECONDS },
+        timer: { red: MOVE_SECONDS, blue: MOVE_SECONDS },
         turnStartedAt: Date.now(),
         chat: []
       };
@@ -157,20 +166,29 @@ export function registerRealtimeServer(io: IO) {
     });
 
     socket.on("matchmaking:join", (payload: { userId: string; username: string }) => {
-      const waiting = queue.shift();
-      const player = createPlayer(socket, payload, waiting ? "blue" : "red");
-      if (!waiting) {
-        queue.push(player);
+      // Already waiting on this socket/user — ignore so we never match a player with themselves.
+      if (queue.some((entry) => entry.socketId === socket.id || entry.userId === payload.userId)) {
         socket.emit("matchmaking:waiting");
         return;
       }
+      // Pull the first opponent whose socket is still connected; drop stale queue entries.
+      let waiting = queue.shift();
+      while (waiting && !io.sockets.sockets.get(waiting.socketId)) {
+        waiting = queue.shift();
+      }
+      if (!waiting) {
+        queue.push(createPlayer(socket, payload, "red"));
+        socket.emit("matchmaking:waiting");
+        return;
+      }
+      const player = createPlayer(socket, payload, "blue");
 
       const room: Room = {
         id: code(),
         players: [waiting],
         state: createInitialState(),
         rematch: new Set(),
-        timer: { red: ROOM_SECONDS, blue: ROOM_SECONDS },
+        timer: { red: MOVE_SECONDS, blue: MOVE_SECONDS },
         turnStartedAt: Date.now(),
         chat: []
       };
@@ -189,13 +207,15 @@ export function registerRealtimeServer(io: IO) {
 
     socket.on("game:move", (payload: Pick<Move, "pieceId" | "to">) => {
       const room = rooms.get(socket.data.roomId);
-      if (!room || room.state.status.state !== "playing") return;
+      if (room?.state.status.state !== "playing") return;
       const player = room.players.find((entry) => entry.socketId === socket.id);
       if (!player || player.color !== room.state.turn || !isLegalMove(room.state, payload)) {
         socket.emit("game:rejected", payload);
         return;
       }
       room.state = applyMove(room.state, payload);
+      // Per-move clock: the player now to move gets a fresh 90s.
+      room.timer[room.state.turn] = MOVE_SECONDS;
       room.turnStartedAt = Date.now();
       emitRoom(io, room);
     });
@@ -206,7 +226,7 @@ export function registerRealtimeServer(io: IO) {
       room.rematch.add(socket.id);
       if (room.rematch.size === 2) {
         room.state = createInitialState();
-        room.timer = { red: ROOM_SECONDS, blue: ROOM_SECONDS };
+        room.timer = { red: MOVE_SECONDS, blue: MOVE_SECONDS };
         room.turnStartedAt = Date.now();
         room.rematch.clear();
       }
@@ -277,6 +297,9 @@ export function registerRealtimeServer(io: IO) {
     });
 
     socket.on("disconnect", () => {
+      // Drop any matchmaking entry for this socket so we never pair against a ghost.
+      const queued = queue.findIndex((entry) => entry.socketId === socket.id);
+      if (queued >= 0) queue.splice(queued, 1);
       const room = rooms.get(socket.data.roomId);
       if (!room) return;
       const player = room.players.find((entry) => entry.socketId === socket.id);

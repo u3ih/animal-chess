@@ -31,10 +31,12 @@ Visual smoke test: with a dev server up on :3000, `node apps/web/scripts/verify-
 
 ## Architecture
 
-pnpm + Turborepo monorepo. Three workspaces (`apps/*`, `packages/*`):
+pnpm + Turborepo monorepo. Workspaces (`apps/*`, `packages/*`):
 
 - **`packages/game-core`** (`@animal-chess/game-core`) — pure, dependency-free rules engine, AI, types, constants. The single source of truth for game logic.
 - **`packages/net-protocol`** (`@animal-chess/net-protocol`) — shared Socket.IO event + payload TypeScript contract (`ClientToServerEvents` / `ServerToClientEvents`, `RoomSnapshot`, etc.). Imports types from game-core.
+- **`packages/i18n`** (`@animal-chess/i18n`) — framework-agnostic i18next + react-i18next setup. `vi` (default) + `en` dictionaries in `src/locales/`, a single `translation` namespace, type-safe `t()` keys (module augmentation in `src/types.ts`). The single source of truth for **all** UI copy and piece/terrain names. Reusable in a future RN app.
+- **`packages/ui`** (`@animal-chess/ui`) — web React primitives (`Button`/`IconButton`, `Input`, `Select`, `Modal`, `Panel`) as thin, `className`-passthrough wrappers over the existing CSS classes. Web-DOM only (not RN).
 - **`apps/web`** (`@animal-chess/web`) — Next.js 16 (App Router) + a custom Socket.IO server.
 
 Packages are consumed **as raw TypeScript** — `main`/`types` point at `./src/index.ts`, there is no build step. The web app resolves them via `transpilePackages` in [next.config.ts](apps/web/next.config.ts). `.npmrc` sets `node-linker=hoisted` so a future `apps/mobile` (React Native / Metro) can reuse both packages unchanged.
@@ -65,5 +67,9 @@ All in-memory `Map`s: `rooms`, matchmaking `queue`, `presence`, `friendRequests`
 
 ## Conventions
 - **Biome** (not ESLint/Prettier): 2-space indent, line width 120, double quotes, semicolons, no trailing commas. Run `pnpm lint:fix` before finishing.
-- UI copy is **Vietnamese** — match existing strings when adding user-facing text.
+- **i18n for all copy** — every user-facing string goes through `@animal-chess/i18n` `t()`; never hardcode display text. Add the key to **both** [vi.ts](packages/i18n/src/locales/vi.ts) and [en.ts](packages/i18n/src/locales/en.ts) (vi is also the type source, so keys are checked at compile time). `vi` is the default/fallback. Piece and terrain names come from i18n keys (`pieces.*`, `terrain.*`), **not** local maps — `PIECE_RANK` (game-core) is the only piece data kept in code. React context does **not** cross the r3f `<Canvas>` boundary, so 3D piece labels are threaded as a `pieceLabels` prop from `page.tsx`, not read via `useTranslation` inside meshes.
+- **Reuse `@animal-chess/ui` primitives** before hand-rolling markup. They keep the existing CSS classes (pass `className`), so styling is unchanged. `Modal` centralizes the backdrop pattern (Esc/backdrop close when `onClose` is given); `Panel` renders the shared `.panel-title` header.
+- **Component files hold at most 1–2 components and stay short.** Extract large or nested components into their own file under `components/` (e.g. `captured-rail.tsx`, `piece-roster.tsx`).
+- **Use providers wisely to prevent rerenders.** Create contexts/providers once at the right level ([providers.tsx](apps/web/src/app/providers.tsx) → `SessionProvider` > `I18nProvider`), memoize their values, and keep volatile state local. The i18n instance is created once; language changes propagate via react-i18next's own subscription — do **not** mirror the current language in `page.tsx` state.
+- UI copy default language is **Vietnamese** — when adding the `vi` value, match the existing tone; add the matching `en` value too.
 - The 3D board (react-three-fiber / drei / three) is `dynamic(..., { ssr: false })` in `page.tsx`; three.js components live under [apps/web/src/components/three/](apps/web/src/components/three/).

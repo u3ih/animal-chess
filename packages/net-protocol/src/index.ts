@@ -70,6 +70,9 @@ export type ClientToServerEvents = {
 /** Events the server emits and the client listens for. */
 export type ServerToClientEvents = {
   "game:snapshot": (snapshot: RoomSnapshot) => void;
+  /** Lightweight per-second clock tick — sent every second instead of a full snapshot, so the
+   *  game state object stays referentially stable and the board does not re-render each tick. */
+  "game:clock": (timer: Record<Player, number>) => void;
   "matchmaking:waiting": () => void;
   "room:error": (message: string) => void;
   "game:rejected": (payload: MovePayload) => void;

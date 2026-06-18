@@ -1,7 +1,10 @@
 "use client";
 
 import type { AiLevel } from "@animal-chess/game-core";
+import { useTranslation } from "@animal-chess/i18n";
+import { Button, cx, Select } from "@animal-chess/ui";
 import { BookOpen, Cpu, Globe2, Play } from "lucide-react";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 type Mode = "ai" | "online";
 
@@ -22,59 +25,66 @@ export function MenuScreen({
   onStart: () => void;
   onShowRules: () => void;
 }) {
+  const { t } = useTranslation();
+  const levelOptions = [
+    { value: "easy", label: t("difficulty.easy") },
+    { value: "medium", label: t("difficulty.medium") },
+    { value: "hard", label: t("difficulty.hard") }
+  ];
+
   return (
     <main className="menu-screen">
       <div className="menu-card">
-        <p className="eyebrow">Dou Shou Qi · Cờ Thú</p>
-        <h1 className="menu-title">Animal Chess</h1>
-        <p className="menu-sub">Bàn cờ 3D — chỉ huy bầy thú, lùa đối thủ vào hang.</p>
+        <div className="menu-toolbar">
+          <LanguageSwitcher className="menu-lang" />
+        </div>
+        <p className="eyebrow">{t("menu.eyebrow")}</p>
+        <h1 className="menu-title">{t("menu.title")}</h1>
+        <p className="menu-sub">{t("menu.subtitle")}</p>
 
         <div className="menu-modes">
-          <button
-            type="button"
-            className={`menu-mode ${mode === "ai" ? "active" : ""}`}
+          <Button
+            className={cx("menu-mode", mode === "ai" && "active")}
             onClick={() => onModeChange("ai")}
             aria-pressed={mode === "ai"}
+            icon={<Cpu />}
           >
-            <Cpu />
-            <strong>Đấu máy</strong>
-            <span>Chơi đơn với AI</span>
-          </button>
-          <button
-            type="button"
-            className={`menu-mode ${mode === "online" ? "active" : ""}`}
+            <strong>{t("menu.modeAi")}</strong>
+            <span>{t("menu.modeAiHint")}</span>
+          </Button>
+          <Button
+            className={cx("menu-mode", mode === "online" && "active")}
             onClick={() => onModeChange("online")}
             aria-pressed={mode === "online"}
+            icon={<Globe2 />}
           >
-            <Globe2 />
-            <strong>Online</strong>
-            <span>Đấu người chơi khác</span>
-          </button>
+            <strong>{t("menu.modeOnline")}</strong>
+            <span>{t("menu.modeOnlineHint")}</span>
+          </Button>
         </div>
 
         {mode === "ai" ? (
-          <label className="menu-difficulty">
-            Độ khó
-            <select value={aiLevel} onChange={(e) => onAiLevelChange(e.target.value as AiLevel)}>
-              <option value="easy">Dễ</option>
-              <option value="medium">Vừa</option>
-              <option value="hard">Khó</option>
-            </select>
-          </label>
+          <Select
+            label={t("menu.difficulty")}
+            labelClassName="menu-difficulty"
+            value={aiLevel}
+            onChange={(event) => onAiLevelChange(event.target.value as AiLevel)}
+            options={levelOptions}
+          />
         ) : (
-          <p className="menu-note">Sau khi bắt đầu, tạo phòng hoặc tìm trận nhanh ở bảng Online.</p>
+          <p className="menu-note">{t("menu.onlineNote")}</p>
         )}
 
         <div className="menu-actions">
-          <button type="button" className="primary" onClick={onStart}>
-            <Play /> {mode === "ai" ? "Bắt đầu" : "Vào sảnh online"}
-          </button>
-          <button type="button" onClick={onShowRules}>
-            <BookOpen /> Luật chơi
-          </button>
+          <Button variant="primary" onClick={onStart} icon={<Play />}>
+            {mode === "ai" ? t("menu.startAi") : t("menu.startOnline")}
+          </Button>
+          <Button onClick={onShowRules} icon={<BookOpen />}>
+            {t("menu.rules")}
+          </Button>
         </div>
 
-        {playerName ? <p className="menu-greeting">Xin chào, {playerName}</p> : null}
+        {playerName ? <p className="menu-greeting">{t("menu.greeting", { name: playerName })}</p> : null}
       </div>
     </main>
   );

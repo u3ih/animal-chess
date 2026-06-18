@@ -1,6 +1,8 @@
 "use client";
 
+import { useTranslation } from "@animal-chess/i18n";
 import type { ChatMessage } from "@animal-chess/net-protocol";
+import { Button, Input, Panel } from "@animal-chess/ui";
 import { MessageSquareText, Send } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
@@ -15,6 +17,7 @@ export function ChatPanel({
   disabled: boolean;
   onSend: (text: string) => void;
 }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState("");
 
   function submit(event: FormEvent) {
@@ -26,13 +29,9 @@ export function ChatPanel({
   }
 
   return (
-    <section className="chat-panel">
-      <div className="panel-title">
-        <MessageSquareText />
-        Chat
-      </div>
+    <Panel className="chat-panel" icon={<MessageSquareText />} title={t("chat.title")}>
       <div className="chat-log">
-        {messages.length === 0 ? <p>Chưa có tin nhắn</p> : null}
+        {messages.length === 0 ? <p>{t("chat.empty")}</p> : null}
         {messages.map((message) => (
           <article key={message.id}>
             <strong>{message.username}</strong>
@@ -41,16 +40,14 @@ export function ChatPanel({
         ))}
       </div>
       <form onSubmit={submit}>
-        <input
+        <Input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           disabled={disabled}
-          placeholder="Nhắn trong phòng"
+          placeholder={t("chat.placeholder")}
         />
-        <button type="submit" disabled={disabled}>
-          <Send />
-        </button>
+        <Button type="submit" disabled={disabled} icon={<Send />} />
       </form>
-    </section>
+    </Panel>
   );
 }

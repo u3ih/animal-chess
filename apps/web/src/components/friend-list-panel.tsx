@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslation } from "@animal-chess/i18n";
+import { Button, IconButton, Input, Panel } from "@animal-chess/ui";
 import { Circle, MailPlus, Send, UserRoundPlus, X } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import type { FriendRequest, PresenceEntry, RoomInvite } from "@/hooks/use-online-game";
@@ -32,6 +34,7 @@ export function FriendListPanel({
   onAcceptInvite: (invite: RoomInvite) => void;
   onDismissInvite: (inviteId: string) => void;
 }) {
+  const { t } = useTranslation();
   const [friends, setFriends] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
 
@@ -84,40 +87,42 @@ export function FriendListPanel({
   if (!identity) return null;
 
   return (
-    <section className="friend-panel">
-      <div className="panel-title">
-        <UserRoundPlus />
-        Bạn bè
-      </div>
+    <Panel className="friend-panel" icon={<UserRoundPlus />} title={t("friends.title")}>
       <form onSubmit={addFriend}>
-        <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Gửi lời mời" />
-        <button type="submit">
-          <MailPlus />
-        </button>
+        <Input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder={t("friends.invitePlaceholder")}
+        />
+        <Button type="submit" icon={<MailPlus />} />
       </form>
       {requests.length > 0 ? (
         <div className="friend-requests">
           {requests.map((request) => (
-            <button key={request.id} type="button" onClick={() => onAcceptRequest(request.id)}>
-              Chấp nhận {request.fromUsername}
-            </button>
+            <Button key={request.id} onClick={() => onAcceptRequest(request.id)}>
+              {t("friends.accept", { name: request.fromUsername })}
+            </Button>
           ))}
         </div>
       ) : null}
       <div className="friend-list">
-        {friends.length === 0 ? <p>Chưa có bạn bè</p> : null}
+        {friends.length === 0 ? <p>{t("friends.empty")}</p> : null}
         {friends.map((friend) => (
           <span key={friend}>
             <Circle className={presence.some((entry) => entry.username === friend) ? "online" : ""} />
             {friend}
             {roomId && presence.some((entry) => entry.username === friend) ? (
-              <button type="button" onClick={() => onInvite(friend)} aria-label={`Mời ${friend}`}>
-                <Send />
-              </button>
+              <IconButton
+                label={t("friends.invite", { name: friend })}
+                icon={<Send />}
+                onClick={() => onInvite(friend)}
+              />
             ) : null}
-            <button type="button" onClick={() => removeFriend(friend)} aria-label={`Xóa ${friend}`}>
-              <X />
-            </button>
+            <IconButton
+              label={t("friends.remove", { name: friend })}
+              icon={<X />}
+              onClick={() => removeFriend(friend)}
+            />
           </span>
         ))}
       </div>
@@ -126,17 +131,13 @@ export function FriendListPanel({
           {invites.map((invite) => (
             <div key={invite.id}>
               <strong>{invite.fromUsername}</strong>
-              <span>mời vào phòng {invite.roomId}</span>
-              <button type="button" onClick={() => onAcceptInvite(invite)}>
-                Vào
-              </button>
-              <button type="button" onClick={() => onDismissInvite(invite.id)}>
-                Bỏ qua
-              </button>
+              <span>{t("friends.invitedToRoom", { id: invite.roomId })}</span>
+              <Button onClick={() => onAcceptInvite(invite)}>{t("common.join")}</Button>
+              <Button onClick={() => onDismissInvite(invite.id)}>{t("common.skip")}</Button>
             </div>
           ))}
         </div>
       ) : null}
-    </section>
+    </Panel>
   );
 }

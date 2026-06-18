@@ -1,6 +1,8 @@
 "use client";
 
-import { Link2, RadioTower, RefreshCcw, Swords } from "lucide-react";
+import { useTranslation } from "@animal-chess/i18n";
+import { Button, cx, Input, Panel } from "@animal-chess/ui";
+import { Link2, RadioTower, RefreshCcw, Swords, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 export function OnlinePanel({
@@ -8,22 +10,27 @@ export function OnlinePanel({
   onActivate,
   roomId,
   status,
+  waiting,
   winner,
   onCreateRoom,
   onJoinRoom,
   onQuickMatch,
+  onCancelMatch,
   onRematch
 }: {
   active: boolean;
   onActivate: () => void;
   roomId?: string;
   status: string;
+  waiting?: boolean;
   winner?: string;
   onCreateRoom: () => void;
   onJoinRoom: (roomId: string) => void;
   onQuickMatch: () => void;
+  onCancelMatch: () => void;
   onRematch: () => void;
 }) {
+  const { t } = useTranslation();
   const [roomCode, setRoomCode] = useState("");
 
   function createRoom() {
@@ -43,34 +50,32 @@ export function OnlinePanel({
   }
 
   return (
-    <div className={`online-panel${active ? " active" : ""}`}>
-      <div className="panel-title">
-        <RadioTower />
-        Online
-      </div>
+    <Panel as="div" className={cx("online-panel", active && "active")} icon={<RadioTower />} title={t("online.title")}>
       <p>{status}</p>
-      {roomId ? <strong>Mã phòng: {roomId}</strong> : null}
+      {roomId ? <strong>{t("online.roomCode", { id: roomId })}</strong> : null}
       <div className="panel-actions">
-        <button onClick={createRoom}>
-          <Link2 />
-          Tạo phòng
-        </button>
-        <button onClick={quickMatch}>
-          <Swords />
-          Ghép nhanh
-        </button>
+        <Button onClick={createRoom} icon={<Link2 />}>
+          {t("online.createRoom")}
+        </Button>
+        {waiting ? (
+          <Button onClick={onCancelMatch} icon={<X />}>
+            {t("online.cancelMatch")}
+          </Button>
+        ) : (
+          <Button onClick={quickMatch} icon={<Swords />}>
+            {t("online.quickMatch")}
+          </Button>
+        )}
       </div>
       <form onSubmit={joinRoom}>
-        <input
+        <Input
           value={roomCode}
           onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
-          placeholder="Nhập mã phòng"
+          placeholder={t("online.roomCodePlaceholder")}
         />
-        <button type="submit">
-          <RefreshCcw />
-        </button>
+        <Button type="submit" icon={<RefreshCcw />} />
       </form>
-      {winner ? <button onClick={onRematch}>Rematch</button> : null}
-    </div>
+      {winner ? <Button onClick={onRematch}>{t("online.rematch")}</Button> : null}
+    </Panel>
   );
 }

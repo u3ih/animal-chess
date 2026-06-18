@@ -1,11 +1,14 @@
 "use client";
 
-import type { Move, Position } from "@animal-chess/game-core";
+import { DENS, type Move, type Position } from "@animal-chess/game-core";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import type * as THREE from "three";
 import { ALL_CELLS, BOARD_H, BOARD_W, tileToWorld } from "./coords";
+import { DenStructure } from "./DenStructure";
+import { RuinWall } from "./RuinWall";
 import { Tile } from "./Tile";
+import { getStoneTexture, getWaterTexture } from "./textures";
 
 function MoveHint({ pos, capture, pulse }: { pos: Position; capture: boolean; pulse: React.MutableRefObject<number> }) {
   const ref = useRef<THREE.Mesh>(null);
@@ -51,26 +54,30 @@ export function Board3D({
   onCellClick: (pos: Position) => void;
 }) {
   const pulse = useRef(0);
+  const water = getWaterTexture();
   useFrame((_, delta) => {
     pulse.current += delta * 3.4;
+    // scroll the shared water texture so every moat tile flows together
+    water.offset.y += delta * 0.05;
+    water.offset.x += delta * 0.012;
   });
 
   return (
     <group>
-      {/* foundation slab */}
+      {/* stone foundation slab */}
       <mesh receiveShadow position={[0, -0.55, 0]}>
-        <boxGeometry args={[BOARD_W + 1.1, 0.7, BOARD_H + 1.1]} />
-        <meshStandardMaterial color="#2c3a1f" roughness={1} />
+        <boxGeometry args={[BOARD_W + 1.4, 0.7, BOARD_H + 1.4]} />
+        <meshStandardMaterial map={getStoneTexture()} color="#6a6250" roughness={1} />
       </mesh>
-      {/* decorative rim */}
-      <mesh position={[0, -0.22, 0]}>
-        <boxGeometry args={[BOARD_W + 0.9, 0.12, BOARD_H + 0.9]} />
-        <meshStandardMaterial color="#46341f" roughness={0.9} />
-      </mesh>
+
+      <RuinWall />
 
       {ALL_CELLS.map((pos) => (
         <Tile key={`${pos.row}-${pos.col}`} pos={pos} interactive={interactive} onCellClick={onCellClick} />
       ))}
+
+      <DenStructure pos={DENS.red} owner="red" onCellClick={onCellClick} />
+      <DenStructure pos={DENS.blue} owner="blue" onCellClick={onCellClick} />
 
       {legalMoves.map((m) => (
         <MoveHint key={`${m.to.row}-${m.to.col}`} pos={m.to} capture={Boolean(m.capturedPieceId)} pulse={pulse} />

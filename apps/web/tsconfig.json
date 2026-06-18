@@ -8,7 +8,9 @@
     "paths": {
       "@/*": ["./src/*"],
       "@animal-chess/game-core": ["../../packages/game-core/src/index.ts"],
-      "@animal-chess/net-protocol": ["../../packages/net-protocol/src/index.ts"]
+      "@animal-chess/net-protocol": ["../../packages/net-protocol/src/index.ts"],
+      "@animal-chess/i18n": ["../../packages/i18n/src/index.ts"],
+      "@animal-chess/ui": ["../../packages/ui/src/index.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts"],

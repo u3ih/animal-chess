@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@animal-chess/game-core": "workspace:*",
+    "@animal-chess/i18n": "workspace:*",
     "@animal-chess/net-protocol": "workspace:*",
+    "@animal-chess/ui": "workspace:*",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "lucide-react": "^0.511.0",
