@@ -4,7 +4,7 @@ import type { Position } from "@animal-chess/game-core";
 import { type ThreeEvent, useFrame } from "@react-three/fiber";
 import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { getTerrain, type TerrainKind, tileToWorld } from "./coords";
+import { getTerrain, tileToWorld } from "./coords";
 import { getLightningTexture, getMossStoneTexture, getStoneTexture, getWaterTexture } from "./textures";
 
 /** Owner tint laid faintly over the stone of trap/den tiles. */

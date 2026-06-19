@@ -12,6 +12,7 @@ import type {
 } from "@animal-chess/net-protocol";
 import { useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
+import { STATIC_EXPORT } from "../lib/flags";
 import { safeRandomUUID } from "../lib/uuid";
 import type { PlayerIdentity } from "./use-player-identity";
 
@@ -47,6 +48,8 @@ export function useOnlineGame(identity?: PlayerIdentity) {
   const player = identity ?? fallbackIdentity;
 
   useEffect(() => {
+    // Static GitHub Pages build has no Socket.IO server — never dial it.
+    if (STATIC_EXPORT) return;
     const nextSocket: GameSocket = io();
     nextSocket.on("connect", () => setStatus("onlineStatus.connected"));
     nextSocket.on("matchmaking:waiting", () => setStatus("onlineStatus.waiting"));

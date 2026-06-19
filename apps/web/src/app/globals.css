@@ -63,7 +63,7 @@ select:focus-visible {
   padding: 20px;
   background:
     linear-gradient(180deg, rgba(6, 9, 6, 0.28), rgba(6, 9, 6, 0.82)),
-    url("/assets/jungle-backdrop.png") center / cover fixed;
+    var(--bg-image, url("/assets/jungle-backdrop.png")) center / cover fixed;
 }
 
 .topbar,
@@ -1052,7 +1052,7 @@ select:focus-visible {
   padding: 24px;
   background:
     linear-gradient(180deg, rgba(6, 9, 6, 0.35), rgba(6, 9, 6, 0.86)),
-    url("/assets/jungle-backdrop.png") center / cover fixed;
+    var(--bg-image, url("/assets/jungle-backdrop.png")) center / cover fixed;
 }
 
 .menu-card {

@@ -46,6 +46,7 @@ import { RulesModal } from "@/components/screens/RulesModal";
 import { WinOverlay } from "@/components/screens/WinOverlay";
 import type { TerrainKind } from "@/components/three/coords";
 import { PIECE_ORDER, useGameController } from "@/hooks/use-game-controller";
+import { STATIC_EXPORT } from "@/lib/flags";
 
 function BoardLoading() {
   const { t } = useTranslation();
@@ -180,7 +181,7 @@ export default function Home() {
             icon={audioEnabled ? <Volume2 /> : <VolumeX />}
             onClick={() => setAudioEnabled((value) => !value)}
           />
-          {session?.user ? (
+          {STATIC_EXPORT ? null : session?.user ? (
             <IconButton label={t("game.signOut")} icon={<LogOut />} onClick={() => signOut()} />
           ) : identity?.kind === "guest" ? (
             <IconButton label={t("game.exitGuest")} icon={<LogOut />} onClick={signOutGuest} />
@@ -385,15 +386,17 @@ export default function Home() {
                 >
                   {t("game.tabMachine")}
                 </Button>
-                <Button
-                  className={cx(mode === "online" && "active")}
-                  onClick={() => setMode("online")}
-                  role="tab"
-                  aria-selected={mode === "online"}
-                  icon={<MapPin />}
-                >
-                  {t("game.tabOnline")}
-                </Button>
+                {STATIC_EXPORT ? null : (
+                  <Button
+                    className={cx(mode === "online" && "active")}
+                    onClick={() => setMode("online")}
+                    role="tab"
+                    aria-selected={mode === "online"}
+                    icon={<MapPin />}
+                  >
+                    {t("game.tabOnline")}
+                  </Button>
+                )}
               </div>
               <Select
                 label={t("menu.difficulty")}
@@ -432,37 +435,47 @@ export default function Home() {
               localColor={localColor}
               onSelect={selectPiece}
             />
-            <OnlinePanel
-              active={mode === "online"}
-              onActivate={() => setMode("online")}
-              roomId={online.snapshot?.id}
-              status={t(online.status)}
-              waiting={online.status === "onlineStatus.waiting"}
-              winner={online.snapshot?.state.status.state === "won" ? online.snapshot.state.status.winner : undefined}
-              onCreateRoom={online.createRoom}
-              onJoinRoom={online.joinRoom}
-              onQuickMatch={online.quickMatch}
-              onCancelMatch={online.cancelMatch}
-              onRematch={online.rematch}
-            />
-            {identity ? (
-              <ChatPanel messages={online.snapshot?.chat ?? []} disabled={!online.snapshot} onSend={online.sendChat} />
-            ) : null}
-            <ProfilePanel onUsernameChange={setUsername} />
-            {!session?.user && !identity ? <GuestLoginPanel onSubmit={signInGuest} /> : null}
-            <FriendListPanel
-              identity={identity}
-              presence={online.presence}
-              requests={online.friendRequests}
-              acceptedFriends={online.acceptedFriends}
-              invites={online.invites}
-              roomId={online.snapshot?.id}
-              onRequest={online.sendFriendRequest}
-              onAcceptRequest={online.acceptFriendRequest}
-              onInvite={online.inviteToRoom}
-              onAcceptInvite={online.acceptInvite}
-              onDismissInvite={online.dismissInvite}
-            />
+            {STATIC_EXPORT ? null : (
+              <>
+                <OnlinePanel
+                  active={mode === "online"}
+                  onActivate={() => setMode("online")}
+                  roomId={online.snapshot?.id}
+                  status={t(online.status)}
+                  waiting={online.status === "onlineStatus.waiting"}
+                  winner={
+                    online.snapshot?.state.status.state === "won" ? online.snapshot.state.status.winner : undefined
+                  }
+                  onCreateRoom={online.createRoom}
+                  onJoinRoom={online.joinRoom}
+                  onQuickMatch={online.quickMatch}
+                  onCancelMatch={online.cancelMatch}
+                  onRematch={online.rematch}
+                />
+                {identity ? (
+                  <ChatPanel
+                    messages={online.snapshot?.chat ?? []}
+                    disabled={!online.snapshot}
+                    onSend={online.sendChat}
+                  />
+                ) : null}
+                <ProfilePanel onUsernameChange={setUsername} />
+                {!session?.user && !identity ? <GuestLoginPanel onSubmit={signInGuest} /> : null}
+                <FriendListPanel
+                  identity={identity}
+                  presence={online.presence}
+                  requests={online.friendRequests}
+                  acceptedFriends={online.acceptedFriends}
+                  invites={online.invites}
+                  roomId={online.snapshot?.id}
+                  onRequest={online.sendFriendRequest}
+                  onAcceptRequest={online.acceptFriendRequest}
+                  onInvite={online.inviteToRoom}
+                  onAcceptInvite={online.acceptInvite}
+                  onDismissInvite={online.dismissInvite}
+                />
+              </>
+            )}
           </aside>
         </div>
 
