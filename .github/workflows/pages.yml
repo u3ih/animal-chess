@@ -6,7 +6,9 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    # `main` is the production trigger. The preview branch lets you deploy
+    # without merging — remove it once merged to main.
+    branches: [main, feat/gh-pages-ai-only]
   workflow_dispatch:
 
 permissions:
