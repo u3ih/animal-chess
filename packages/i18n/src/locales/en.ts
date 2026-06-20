@@ -36,6 +36,7 @@ const en = {
     eyebrow: "Dou Shou Qi",
     title: "Animal Chess",
     backToMenu: "Back to menu",
+    faceoff: "Faceoff",
     rules: "Rules",
     toggleSound: "Toggle sound",
     signOut: "Sign out",

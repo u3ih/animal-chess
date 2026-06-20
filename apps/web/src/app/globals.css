@@ -110,6 +110,79 @@ select:focus-visible {
   place-items: center;
 }
 
+.footer-bar {
+  margin: 18px auto 0;
+}
+
+.footer-faceoff {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(30, 43, 30, 0.94), rgba(13, 21, 13, 0.94));
+  border: 2px solid rgba(226, 187, 97, 0.4);
+}
+
+.faceoff-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.faceoff-side.foe {
+  flex-direction: row-reverse;
+}
+
+.faceoff-avatar {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.faceoff-side.red .faceoff-avatar {
+  border-color: rgba(196, 91, 66, 0.85);
+}
+
+.faceoff-side.blue .faceoff-avatar {
+  border-color: rgba(95, 140, 200, 0.85);
+}
+
+.faceoff-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.faceoff-avatar svg {
+  width: 16px;
+  height: 16px;
+  color: var(--ink);
+}
+
+.faceoff-name {
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.faceoff-vs {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--gold);
+}
+
 .arena {
   position: relative;
   display: grid;

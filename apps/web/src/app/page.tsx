@@ -99,10 +99,8 @@ export default function Home() {
   const youColor: Player = localColor ?? "red";
   const foeColor: Player = youColor === "red" ? "blue" : "red";
   const youName = identity?.username ?? session?.user?.name ?? t("common.you");
-  const foeName =
-    mode === "ai"
-      ? t("game.machine")
-      : (online.snapshot?.players.find((slot) => slot.color === foeColor)?.username ?? t("game.opponent"));
+  const foeSlot = online.snapshot?.players.find((slot) => slot.color === foeColor);
+  const foeName = mode === "ai" ? t("game.machine") : (foeSlot?.username ?? t("game.opponent"));
   const clockFor = (color: Player) =>
     mode === "online" && online.snapshot
       ? online.timer[color]
@@ -129,27 +127,6 @@ export default function Home() {
 
   return (
     <main className="game-shell">
-      <header className="topbar">
-        <p className="eyebrow">{t("game.eyebrow")}</p>
-        <div className="topbar-actions">
-          <LanguageSwitcher />
-          <IconButton label={t("game.backToMenu")} icon={<HomeIcon />} onClick={goMenu} />
-          <IconButton label={t("game.rules")} icon={<HelpCircle />} onClick={() => setShowRules(true)} />
-          <IconButton
-            label={t("game.toggleSound")}
-            icon={audioEnabled ? <Volume2 /> : <VolumeX />}
-            onClick={() => setAudioEnabled((value) => !value)}
-          />
-          {STATIC_EXPORT ? null : session?.user ? (
-            <IconButton label={t("game.signOut")} icon={<LogOut />} onClick={() => signOut()} />
-          ) : identity?.kind === "guest" ? (
-            <IconButton label={t("game.exitGuest")} icon={<LogOut />} onClick={signOutGuest} />
-          ) : (
-            <IconButton label={t("game.signInGoogle")} icon={<LogIn />} onClick={() => signIn("google")} />
-          )}
-        </div>
-      </header>
-
       <section className="arena match-skin">
         <div className="brand-logo">
           <Sparkles aria-hidden="true" />
@@ -361,6 +338,51 @@ export default function Home() {
           <span>{t("game.panelsTitle")}</span>
         </button>
       </section>
+
+      <footer className="topbar footer-bar">
+        <p className="eyebrow">{t("game.eyebrow")}</p>
+        <div className="topbar-actions">
+          <LanguageSwitcher />
+          {mode === "online" && foeSlot ? (
+            // biome-ignore lint/a11y/useSemanticElements: visual grouping; <fieldset> would break the flex layout and need a legend
+            <div className="footer-faceoff" role="group" aria-label={t("game.faceoff")}>
+              <span className={cx("faceoff-side", youColor)}>
+                <span className="faceoff-avatar">
+                  {session?.user?.image ? (
+                    // biome-ignore lint/performance/noImgElement: remote avatar on static export; next/image optimization is off
+                    <img src={session.user.image} alt="" referrerPolicy="no-referrer" />
+                  ) : (
+                    <UserRound />
+                  )}
+                </span>
+                <span className="faceoff-name">{youName}</span>
+              </span>
+              <Swords className="faceoff-vs" aria-hidden="true" />
+              <span className={cx("faceoff-side", foeColor)}>
+                <span className="faceoff-avatar">
+                  <Headphones />
+                </span>
+                <span className="faceoff-name">{foeName}</span>
+              </span>
+            </div>
+          ) : (
+            <IconButton label={t("game.backToMenu")} icon={<HomeIcon />} onClick={goMenu} />
+          )}
+          <IconButton label={t("game.rules")} icon={<HelpCircle />} onClick={() => setShowRules(true)} />
+          <IconButton
+            label={t("game.toggleSound")}
+            icon={audioEnabled ? <Volume2 /> : <VolumeX />}
+            onClick={() => setAudioEnabled((value) => !value)}
+          />
+          {STATIC_EXPORT ? null : session?.user ? (
+            <IconButton label={t("game.signOut")} icon={<LogOut />} onClick={() => signOut()} />
+          ) : identity?.kind === "guest" ? (
+            <IconButton label={t("game.exitGuest")} icon={<LogOut />} onClick={signOutGuest} />
+          ) : (
+            <IconButton label={t("game.signInGoogle")} icon={<LogIn />} onClick={() => signIn("google")} />
+          )}
+        </div>
+      </footer>
 
       {liveState.status.state === "won" ? (
         <WinOverlay

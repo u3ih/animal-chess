@@ -30,7 +30,12 @@ export function PlayerBadge({
   return (
     <div className={cx("player-badge", color, side, active && "active")}>
       <div className="badge-avatar">
-        {avatarUrl ? <img src={avatarUrl} alt="" referrerPolicy="no-referrer" /> : icon}
+        {avatarUrl ? (
+          // biome-ignore lint/performance/noImgElement: remote avatar on static export; next/image optimization is off
+          <img src={avatarUrl} alt="" referrerPolicy="no-referrer" />
+        ) : (
+          icon
+        )}
       </div>
       <div className="badge-meta">
         <strong>{name}</strong>

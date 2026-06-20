@@ -36,6 +36,7 @@ const vi = {
     eyebrow: "Dou Shou Qi",
     title: "Animal Chess",
     backToMenu: "Về menu",
+    faceoff: "Đối đầu",
     rules: "Luật chơi",
     toggleSound: "Bật tắt âm thanh",
     signOut: "Đăng xuất",
