@@ -83,6 +83,10 @@ function Scene({
 
   return (
     <>
+      {/* opaque scene backdrop = fog colour: tilting/zooming can expose canvas beyond the board,
+          and with a transparent canvas that hole showed the page jungle bleeding through ("xuyên").
+          Filling it with the fog colour makes distant geometry fade into a seamless atmospheric horizon. */}
+      <color attach="background" args={["#26331b"]} />
       <fog attach="fog" args={["#26331b", 15, 32]} />
       <hemisphereLight color="#ffe7b0" groundColor="#2f4220" intensity={0.95} />
       <ambientLight intensity={0.45} />

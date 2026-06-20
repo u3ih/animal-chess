@@ -110,81 +110,96 @@ select:focus-visible {
   place-items: center;
 }
 
-.match-summary {
-  max-width: 1680px;
-  margin: 0 auto 18px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
-  background: rgba(18, 29, 21, 0.74);
-  backdrop-filter: blur(10px);
-}
-
-.match-summary > div:last-child {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.match-summary strong,
-.match-summary span {
-  min-width: 0;
-}
-
-.match-summary > div:last-child > span {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.status-pill {
-  min-height: 38px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.07);
-  white-space: nowrap;
-}
-
-.status-pill.red {
-  color: #ffd2c5;
-  background: rgba(196, 91, 66, 0.16);
-}
-
-.status-pill.blue {
-  color: #d9e9ff;
-  background: rgba(95, 140, 200, 0.17);
-}
-
-.status-pill svg {
-  width: 18px;
-}
-
 .arena {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
-  gap: 18px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
   align-items: start;
+  justify-items: center;
 }
 
-/* the two side panels live in one rail (right column on desktop, a bottom sheet on mobile) */
+/* Controls/social panels live in an off-canvas sheet at every width so the board stays flanked
+   by the rank rails (the immersive Cờ Thú match-skin). Toggled by the floating button. */
 .rails {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 60;
+  width: min(380px, 92vw);
   display: grid;
-  gap: 16px;
+  gap: 14px;
   align-content: start;
+  overflow-y: auto;
+  padding: 16px;
+  background: rgba(10, 16, 11, 0.97);
+  border-left: 1px solid var(--panel-border);
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.55);
+  transform: translateX(105%);
+  transition: transform 0.28s ease;
 }
 
-/* drawer chrome: only shown once .rails becomes an off-canvas sheet (mobile) */
-.rails-head,
-.drawer-toggle,
+.rails.open {
+  transform: none;
+}
+
+.rails-head {
+  position: sticky;
+  top: -16px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -16px -16px 2px;
+  padding: 12px 16px;
+  background: rgba(10, 16, 11, 0.98);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+/* bottom-left so it never collides with the move d-pad (bottom-right) */
+.drawer-toggle {
+  position: fixed;
+  left: 18px;
+  bottom: 22px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: rgba(12, 18, 12, 0.82);
+  border: 1px solid rgba(255, 233, 168, 0.32);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  font-weight: 700;
+}
+
+.drawer-toggle svg {
+  width: 20px;
+  height: 20px;
+  color: var(--gold);
+}
+
 .drawer-scrim {
-  display: none;
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(4, 6, 4, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.drawer-scrim.open {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .side-panel,
@@ -422,86 +437,241 @@ select:focus-visible {
   padding: 0 10px;
 }
 
+/* ============ Cờ Thú match-skin: wooden logo, corner portraits, rank rails ============ */
+.brand-logo {
+  position: absolute;
+  top: -6px;
+  right: 0;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(244, 211, 130, 0.97), rgba(168, 118, 41, 0.97));
+  color: #2a1d08;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border: 2px solid rgba(255, 243, 206, 0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.brand-logo svg {
+  width: 16px;
+  height: 16px;
+}
+
+.player-badge {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(64%, 240px);
+  padding: 6px 16px 6px 6px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(30, 43, 30, 0.94), rgba(13, 21, 13, 0.94));
+  border: 2px solid rgba(226, 187, 97, 0.4);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.player-badge.you {
+  top: 14px;
+  left: 14px;
+}
+
+.player-badge.foe {
+  bottom: 14px;
+  right: 14px;
+  flex-direction: row-reverse;
+  padding: 6px 6px 6px 16px;
+}
+
+.player-badge.active {
+  border-color: var(--gold);
+  box-shadow:
+    0 0 0 2px rgba(226, 187, 97, 0.45),
+    0 8px 26px rgba(0, 0, 0, 0.5);
+}
+
+.badge-avatar {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.player-badge.red .badge-avatar {
+  border-color: rgba(196, 91, 66, 0.85);
+}
+
+.player-badge.blue .badge-avatar {
+  border-color: rgba(95, 140, 200, 0.85);
+}
+
+.badge-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.badge-avatar svg {
+  width: 22px;
+  height: 22px;
+  color: var(--ink);
+}
+
+.badge-meta {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.player-badge.foe .badge-meta {
+  text-align: right;
+}
+
+.badge-meta strong {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.player-badge.foe .badge-clock {
+  flex-direction: row-reverse;
+}
+
+.badge-clock svg {
+  width: 13px;
+  height: 13px;
+}
+
+.badge-clock.urgent {
+  color: var(--danger);
+  font-weight: 800;
+}
+
+.rank-rail {
+  align-self: center;
+  display: grid;
+  gap: 6px;
+  width: 50px;
+  padding: 8px 6px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(64, 45, 26, 0.92), rgba(38, 26, 15, 0.94));
+  border: 1px solid rgba(226, 187, 97, 0.34);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 12px 32px rgba(0, 0, 0, 0.42);
+}
+
+.rank-cell {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  min-height: 0;
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.rank-num {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff7e6;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+}
+
+/* names hidden — board pieces already carry labels; rail stays a thin rank/captured strip */
+.rank-name {
+  display: none;
+}
+
+.rank-rail.red .rank-num {
+  background: radial-gradient(circle at 35% 30%, #db7a5f, #a8402c);
+}
+
+.rank-rail.blue .rank-num {
+  background: radial-gradient(circle at 35% 30%, #7aa7e0, #3f6bb0);
+}
+
+.rank-cell.selected {
+  border-color: var(--gold);
+  background: rgba(226, 187, 97, 0.18);
+  box-shadow: 0 0 0 1px var(--gold);
+}
+
+.rank-cell.defeated {
+  opacity: 0.32;
+  filter: grayscale(0.7);
+}
+
+.rank-cell:disabled {
+  cursor: default;
+}
+
+.rank-cell:disabled:not(.selected):hover {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.045);
+  transform: none;
+}
+
+.rank-moves {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--gold);
+  color: #1c2114;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 800;
+}
+
 .board-stage {
   position: relative;
   display: grid;
   justify-items: center;
   gap: 12px;
-  --board-width: min(1040px, 100%, calc((100vh - 180px) * 7 / 8));
-}
-
-.board-topline {
-  width: var(--board-width);
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.board-topline div,
-.map-inspector,
-.move-tray {
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
-  background: rgba(18, 29, 21, 0.78);
-  backdrop-filter: blur(10px);
-}
-
-.board-topline div {
-  min-width: 0;
-  padding: 10px 12px;
-  display: grid;
-  gap: 2px;
-}
-
-.board-topline span {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.board-topline strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.map-inspector {
-  width: var(--board-width);
-  padding: 10px 12px;
-  display: grid;
-  grid-template-columns: 0.7fr 1fr 1fr;
-  gap: 8px 12px;
-  align-items: center;
-}
-
-.map-inspector div {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.map-inspector span {
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.map-inspector strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-}
-
-.map-inspector p {
-  grid-column: 1 / -1;
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
+  /* size from viewport height, capped by the available column width (vw-based, NOT % — a
+     self-referential % here collapses the board inside the grid track on wide screens) and a hard max. */
+  --board-width: min(1260px, calc(min(100vw - 40px, 1680px) - 200px), calc((100vh - 64px) * 7 / 8));
 }
 
 .board-3d {
   position: relative;
   width: var(--board-width);
-  height: min(86vh, calc(var(--board-width) * 1.12));
+  height: min(94vh, calc(var(--board-width) * 1.12));
   border-radius: 16px;
   overflow: hidden;
   background: radial-gradient(120% 120% at 50% 18%, rgba(54, 74, 38, 0.5), rgba(8, 12, 8, 0.62));
@@ -605,76 +775,6 @@ select:focus-visible {
   color: var(--gold);
 }
 
-/* per-move countdown clock above the board */
-.move-clock {
-  width: var(--board-width);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
-  background: rgba(18, 29, 21, 0.78);
-  backdrop-filter: blur(10px);
-}
-
-.move-clock .clock-icon {
-  width: 18px;
-  height: 18px;
-  color: var(--gold);
-  flex-shrink: 0;
-}
-
-.move-clock .clock-time {
-  font-variant-numeric: tabular-nums;
-  font-weight: 800;
-  font-size: 15px;
-  min-width: 38px;
-}
-
-.move-clock.urgent .clock-time {
-  color: #ff7a5f;
-}
-
-.move-clock .clock-bar {
-  position: relative;
-  flex: 1;
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  overflow: hidden;
-}
-
-.move-clock .clock-fill {
-  position: absolute;
-  inset: 0;
-  transform-origin: left;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #8fc15a, #e7c46d);
-  transition: transform 0.9s linear;
-}
-
-.move-clock.urgent .clock-fill {
-  background: linear-gradient(90deg, #f0a35f, #ff5f5f);
-}
-
-.turn-banner {
-  position: static;
-  padding: 12px 18px;
-  border-radius: 999px;
-  background: rgba(18, 29, 21, 0.9);
-  border: 1px solid var(--panel-border);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: center;
-  min-width: 190px;
-}
-
-.turn-banner svg {
-  width: 18px;
-}
-
 .panel-title {
   display: flex;
   gap: 8px;
@@ -708,44 +808,6 @@ select:focus-visible {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
-}
-
-.move-tray {
-  width: var(--board-width);
-  padding: 12px;
-  display: grid;
-  gap: 10px;
-}
-
-.move-tray ol {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.move-tray li {
-  min-width: 0;
-  padding: 8px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  display: grid;
-  gap: 2px;
-}
-
-.move-tray li span {
-  color: var(--gold);
-  font-size: 12px;
-}
-
-.move-tray li strong {
-  font-size: 12px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .panel-actions {
@@ -890,99 +952,25 @@ select:focus-visible {
 
   .board-3d {
     width: var(--board-width);
-    height: min(72vh, calc(var(--board-width) * 1.18));
+    height: min(80vh, calc(var(--board-width) * 1.18));
   }
 
-  .board-topline,
-  .move-tray {
-    width: var(--board-width);
-  }
-
-  /* declutter: history/inspector/secondary stats move into the drawer's panels */
-  .board-topline,
-  .map-inspector,
-  .move-tray {
-    display: none;
-  }
-
-  /* .rails turns into a bottom sheet that slides up over the board */
+  /* the controls sheet slides up from the bottom instead of in from the right */
   .rails {
-    position: fixed;
+    top: auto;
     left: 0;
     right: 0;
-    bottom: 0;
-    z-index: 60;
+    width: auto;
     max-height: 86vh;
-    overflow-y: auto;
-    padding: 14px;
-    gap: 14px;
-    background: rgba(10, 16, 11, 0.97);
+    border-left: 0;
     border-top: 1px solid var(--panel-border);
     border-radius: 18px 18px 0 0;
     box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.55);
     transform: translateY(105%);
-    transition: transform 0.28s ease;
   }
 
   .rails.open {
     transform: none;
-  }
-
-  .rails-head {
-    position: sticky;
-    top: -14px;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin: -14px -14px 2px;
-    padding: 12px 14px;
-    background: rgba(10, 16, 11, 0.98);
-    border-bottom: 1px solid var(--panel-border);
-  }
-
-  .drawer-toggle {
-    position: fixed;
-    left: 18px;
-    bottom: 22px;
-    z-index: 50;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    height: 46px;
-    padding: 0 16px;
-    border-radius: 999px;
-    background: rgba(12, 18, 12, 0.82);
-    border: 1px solid rgba(255, 233, 168, 0.32);
-    backdrop-filter: blur(8px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-    font-weight: 700;
-  }
-
-  .drawer-toggle svg {
-    width: 20px;
-    height: 20px;
-    color: var(--gold);
-  }
-
-  .drawer-scrim {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 55;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: rgba(4, 6, 4, 0.5);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-  }
-
-  .drawer-scrim.open {
-    opacity: 1;
-    pointer-events: auto;
   }
 
   .side-panel {
@@ -990,6 +978,24 @@ select:focus-visible {
     border: 0;
     backdrop-filter: none;
     padding: 0;
+  }
+
+  /* rank rails lie flat above/below the board so they don't steal board width */
+  .rank-rail {
+    align-self: auto;
+    width: var(--board-width);
+    max-width: 100%;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  /* logo can't float over a full-width rail anymore — give it its own centered row up top */
+  .brand-logo {
+    position: static;
+    order: -1;
+    justify-self: center;
+    margin-bottom: 4px;
   }
 }
 
@@ -1003,7 +1009,7 @@ select:focus-visible {
   }
 
   .board-3d {
-    height: 64vh;
+    height: 72vh;
   }
 
   .topbar {
@@ -1012,23 +1018,6 @@ select:focus-visible {
 
   .topbar h1 {
     font-size: 28px;
-  }
-
-  .match-summary {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .status-pill {
-    justify-content: center;
-  }
-
-  .board-topline {
-    width: var(--board-width);
-  }
-
-  .move-tray ol {
-    grid-template-columns: 1fr;
   }
 }
 

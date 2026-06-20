@@ -1,6 +1,6 @@
 "use client";
 
-import { PIECE_RANK, type PieceKind } from "@animal-chess/game-core";
+import type { PieceKind, Player } from "@animal-chess/game-core";
 import { useTranslation } from "@animal-chess/i18n";
 import { Button, cx, IconButton, Select } from "@animal-chess/ui";
 import {
@@ -8,8 +8,6 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  Crown,
-  Footprints,
   Headphones,
   HelpCircle,
   Home as HomeIcon,
@@ -19,11 +17,8 @@ import {
   MapPin,
   Move,
   RefreshCw,
-  ShieldAlert,
   Sparkles,
   Swords,
-  Timer,
-  Trophy,
   Undo2,
   UserRound,
   Volume2,
@@ -33,18 +28,17 @@ import {
 import dynamic from "next/dynamic";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useMemo, useState } from "react";
-import { CapturedRail } from "@/components/captured-rail";
 import { ChatPanel } from "@/components/chat-panel";
 import { FriendListPanel } from "@/components/friend-list-panel";
 import { GuestLoginPanel } from "@/components/guest-login-panel";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { OnlinePanel } from "@/components/online-panel";
-import { PieceRoster } from "@/components/piece-roster";
+import { PlayerBadge } from "@/components/player-badge";
 import { ProfilePanel } from "@/components/profile-panel";
+import { RankRail } from "@/components/rank-rail";
 import { MenuScreen } from "@/components/screens/MenuScreen";
 import { RulesModal } from "@/components/screens/RulesModal";
 import { WinOverlay } from "@/components/screens/WinOverlay";
-import type { TerrainKind } from "@/components/three/coords";
 import { PIECE_ORDER, useGameController } from "@/hooks/use-game-controller";
 import { STATIC_EXPORT } from "@/lib/flags";
 
@@ -57,15 +51,6 @@ const GameCanvas = dynamic(() => import("@/components/three/GameCanvas").then((m
   ssr: false,
   loading: () => <BoardLoading />
 });
-
-const TERRAIN_KEY: Record<TerrainKind, "grass" | "water" | "trapRed" | "trapBlue" | "denRed" | "denBlue"> = {
-  grass: "grass",
-  water: "water",
-  "trap-red": "trapRed",
-  "trap-blue": "trapBlue",
-  "den-red": "denRed",
-  "den-blue": "denBlue"
-};
 
 export default function Home() {
   const { t } = useTranslation();
@@ -94,13 +79,6 @@ export default function Home() {
     selectedPiece,
     localColor,
     canAct,
-    captureTargets,
-    recentMoves,
-    inspectedPosition,
-    inspectedTerrain,
-    inspectedPiece,
-    inspectedMove,
-    captured,
     dpadMoves,
     moveSecondsLeft,
     moveSecondsTotal,
@@ -118,35 +96,19 @@ export default function Home() {
     () => Object.fromEntries(PIECE_ORDER.map((kind) => [kind, t(`pieces.${kind}`)])) as Record<PieceKind, string>,
     [t]
   );
-  const turnLabel = t(liveState.turn === "red" ? "colors.red" : "colors.blue");
-  const mapAction = inspectedMove?.capturedPieceId
-    ? t("cellAction.canCapture")
-    : inspectedMove
-      ? t("cellAction.canMove")
-      : inspectedPiece
-        ? t(inspectedPiece.owner === "red" ? "cellAction.redHolds" : "cellAction.blueHolds")
-        : t("cellAction.empty");
-  const statusText = (() => {
-    if (liveState.status.state === "won") {
-      const reason = t(liveState.status.reason === "den" ? "winReason.den" : "winReason.elimination");
-      return t(liveState.status.winner === "red" ? "status.redWins" : "status.blueWins", { reason });
-    }
-    if (canAct) return t("status.yourTurn");
-    if (mode === "online" && !online.localPlayer) return t("status.joinForColor");
-    if (mode === "ai" && liveState.turn === "blue") return t("status.machineThinking");
-    return t("status.waitingOpponent");
-  })();
-  const hintText = (() => {
-    if (liveState.status.state === "won") return t("hint.won");
-    if (selectedPiece) {
-      const name: string = t(`pieces.${selectedPiece.kind}`);
-      return captureTargets
-        ? t("hint.selectedWithCaptures", { name, moves: String(legalMoves.length), captures: String(captureTargets) })
-        : t("hint.selected", { name, moves: String(legalMoves.length) });
-    }
-    if (canAct) return t("hint.yourTurn");
-    return t("hint.waiting");
-  })();
+  const youColor: Player = localColor ?? "red";
+  const foeColor: Player = youColor === "red" ? "blue" : "red";
+  const youName = identity?.username ?? session?.user?.name ?? t("common.you");
+  const foeName =
+    mode === "ai"
+      ? t("game.machine")
+      : (online.snapshot?.players.find((slot) => slot.color === foeColor)?.username ?? t("game.opponent"));
+  const clockFor = (color: Player) =>
+    mode === "online" && online.snapshot
+      ? online.timer[color]
+      : liveState.turn === color && liveState.status.state === "playing"
+        ? moveSecondsLeft
+        : moveSecondsTotal;
 
   if (screen === "menu") {
     return (
@@ -168,10 +130,7 @@ export default function Home() {
   return (
     <main className="game-shell">
       <header className="topbar">
-        <div>
-          <p className="eyebrow">{t("game.eyebrow")}</p>
-          <h1>{t("game.title")}</h1>
-        </div>
+        <p className="eyebrow">{t("game.eyebrow")}</p>
         <div className="topbar-actions">
           <LanguageSwitcher />
           <IconButton label={t("game.backToMenu")} icon={<HomeIcon />} onClick={goMenu} />
@@ -191,70 +150,38 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="match-summary" aria-live="polite">
-        <div className={cx("status-pill", liveState.turn)}>
-          {liveState.status.state === "won" ? <Trophy /> : <Sparkles />}
-          <span>{statusText}</span>
+      <section className="arena match-skin">
+        <div className="brand-logo">
+          <Sparkles aria-hidden="true" />
+          <span>{t("game.title")}</span>
         </div>
-        <div>
-          <strong>{hintText}</strong>
-          <span>
-            {mode === "ai"
-              ? t("game.aiLevel", { level: t(`difficulty.${aiLevel}`) })
-              : online.snapshot?.id
-                ? t("game.roomLabel", { id: online.snapshot.id })
-                : t("game.onlineNoRoom")}
-          </span>
-        </div>
-      </section>
-
-      <section className="arena">
+        <RankRail
+          owner="red"
+          state={liveState}
+          selectedPieceId={selectedPieceId}
+          localColor={localColor}
+          pieceLabels={pieceLabels}
+          onSelect={selectPiece}
+        />
         <section className="board-stage">
-          <div className="board-topline">
-            <div>
-              <span>{t("game.currentTurn")}</span>
-              <strong>{turnLabel}</strong>
-            </div>
-            <div>
-              <span>{t("game.movesPlayed")}</span>
-              <strong>{liveState.history.length}</strong>
-            </div>
-            <div>
-              <span>{t("game.selectedPiece")}</span>
-              <strong>{selectedPiece ? t(`pieces.${selectedPiece.kind}`) : t("game.noneSelected")}</strong>
-            </div>
-          </div>
-          <div className="map-inspector">
-            <div>
-              <span>{t("game.inspecting")}</span>
-              <strong>
-                {inspectedPosition.row + 1}-{inspectedPosition.col + 1}
-              </strong>
-            </div>
-            <div>
-              <span>{t("game.terrain")}</span>
-              <strong>{t(`terrain.${TERRAIN_KEY[inspectedTerrain]}.label`)}</strong>
-            </div>
-            <div>
-              <span>{t("game.cellState")}</span>
-              <strong>{mapAction}</strong>
-            </div>
-            <p>{t(`terrain.${TERRAIN_KEY[inspectedTerrain]}.hint`)}</p>
-          </div>
-          {liveState.status.state === "playing" ? (
-            <div className={cx("move-clock", moveSecondsLeft <= 15 && "urgent")}>
-              <Timer className="clock-icon" />
-              <span className="clock-time">{moveSecondsLeft}s</span>
-              <div className="clock-bar">
-                <div
-                  className="clock-fill"
-                  style={{ transform: `scaleX(${Math.max(0, moveSecondsLeft / moveSecondsTotal)})` }}
-                />
-              </div>
-              <span>{t("game.moveClock")}</span>
-            </div>
-          ) : null}
           <div className="board-3d">
+            <PlayerBadge
+              side="you"
+              color={youColor}
+              name={youName}
+              seconds={clockFor(youColor)}
+              active={liveState.status.state === "playing" && liveState.turn === youColor}
+              avatarUrl={session?.user?.image}
+              icon={<UserRound />}
+            />
+            <PlayerBadge
+              side="foe"
+              color={foeColor}
+              name={foeName}
+              seconds={clockFor(foeColor)}
+              active={liveState.status.state === "playing" && liveState.turn === foeColor}
+              icon={<Headphones />}
+            />
             <GameCanvas
               state={liveState}
               pieceLabels={pieceLabels}
@@ -308,48 +235,16 @@ export default function Home() {
               </button>
             </div>
           ) : null}
-          <div className="turn-banner">
-            {liveState.status.state === "won" ? (
-              <>
-                <Crown />
-                {t("game.winnerBanner", { color: t(liveState.status.winner === "red" ? "colors.red" : "colors.blue") })}
-              </>
-            ) : (
-              <>
-                <Footprints />
-                {t("game.turnBanner", { color: t(liveState.turn === "red" ? "colors.redLower" : "colors.blueLower") })}
-              </>
-            )}
-          </div>
-          <div className="move-tray">
-            <div className="panel-title">
-              <ShieldAlert />
-              {t("game.history")}
-            </div>
-            {recentMoves.length ? (
-              <ol>
-                {recentMoves.map((move, index) => {
-                  const piece = liveState.pieces.find((item) => item.id === move.pieceId);
-                  const kind = (piece?.kind ?? move.pieceId.split("-")[1]) as PieceKind;
-                  const name = kind in PIECE_RANK ? t(`pieces.${kind}`) : move.pieceId;
-                  return (
-                    <li key={`${move.pieceId}-${move.to.row}-${move.to.col}-${index}`}>
-                      <span>{name}</span>
-                      <strong>
-                        {t("game.moveEntry", {
-                          from: `${move.from.row + 1}-${move.from.col + 1}`,
-                          to: `${move.to.row + 1}-${move.to.col + 1}`
-                        })}
-                      </strong>
-                    </li>
-                  );
-                })}
-              </ol>
-            ) : (
-              <p>{t("game.noMoves")}</p>
-            )}
-          </div>
         </section>
+
+        <RankRail
+          owner="blue"
+          state={liveState}
+          selectedPieceId={selectedPieceId}
+          localColor={localColor}
+          pieceLabels={pieceLabels}
+          onSelect={selectPiece}
+        />
 
         <div className={cx("rails", drawerOpen && "open")}>
           <div className="rails-head">
@@ -360,21 +255,6 @@ export default function Home() {
             <IconButton label={t("common.close")} icon={<X />} onClick={() => setDrawerOpen(false)} />
           </div>
           <aside className="side-panel">
-            <div className="player-card red">
-              <UserRound />
-              <div>
-                <strong>{identity?.username ?? session?.user?.name ?? t("common.you")}</strong>
-                <span>{t("game.redPieces")}</span>
-              </div>
-            </div>
-            <CapturedRail owner="red" captured={captured.red} />
-            <PieceRoster
-              owner="red"
-              state={liveState}
-              selectedPieceId={selectedPieceId}
-              localColor={localColor}
-              onSelect={selectPiece}
-            />
             <div className="control-stack">
               <div className="mode-tabs" role="tablist" aria-label={t("game.modeTabs")}>
                 <Button
@@ -420,21 +300,6 @@ export default function Home() {
           </aside>
 
           <aside className="side-panel">
-            <div className="player-card blue">
-              <Headphones />
-              <div>
-                <strong>{mode === "ai" ? t("game.machine") : t("game.opponent")}</strong>
-                <span>{t("game.bluePieces")}</span>
-              </div>
-            </div>
-            <CapturedRail owner="blue" captured={captured.blue} />
-            <PieceRoster
-              owner="blue"
-              state={liveState}
-              selectedPieceId={selectedPieceId}
-              localColor={localColor}
-              onSelect={selectPiece}
-            />
             {STATIC_EXPORT ? null : (
               <>
                 <OnlinePanel

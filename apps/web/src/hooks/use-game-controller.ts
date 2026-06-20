@@ -16,6 +16,7 @@ import {
 } from "@animal-chess/game-core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getTerrain } from "@/components/three/coords";
+import { useBackgroundMusic } from "@/hooks/use-background-music";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { useOnlineGame } from "@/hooks/use-online-game";
 import { usePlayerIdentity } from "@/hooks/use-player-identity";
@@ -64,6 +65,7 @@ export function useGameController() {
   const [username, setUsername] = useState<string>();
   const [aiClock, setAiClock] = useState(MOVE_SECONDS);
   const audio = useGameAudio(audioEnabled);
+  useBackgroundMusic(screen === "game" && audioEnabled);
   const { identity, signInGuest, signOutGuest } = usePlayerIdentity(username);
   const online = useOnlineGame(identity);
 
