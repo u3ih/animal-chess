@@ -5,7 +5,7 @@ import type { ThreeEvent } from "@react-three/fiber";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import type * as THREE from "three";
-import { tileToWorld } from "./coords";
+import { surfaceY, tileToWorld } from "./coords";
 import { getStoneTexture } from "./textures";
 
 const GLOW: Record<Player, string> = { red: "#ffb066", blue: "#67b6ff" };
@@ -49,7 +49,7 @@ export function DenStructure({
 
   return (
     <group
-      position={[wx, 0, wz]}
+      position={[wx, surfaceY(pos), wz]}
       onClick={(e: ThreeEvent<MouseEvent>) => {
         e.stopPropagation();
         onCellClick(pos);

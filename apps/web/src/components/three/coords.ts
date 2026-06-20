@@ -32,3 +32,24 @@ export const ALL_CELLS: Position[] = Array.from({ length: BOARD_ROWS * BOARD_COL
   row: Math.floor(i / BOARD_COLS),
   col: i % BOARD_COLS
 }));
+
+// --- Relief / elevation --------------------------------------------------
+// The board is a terraced bowl: each side's home rows sit on a raised plateau
+// that steps gently down to a deep central river. Pieces ride this surface, so
+// a march toward the enemy den visibly climbs. Water is carved well below the
+// land so the moat reads as real depth under the camera tilt.
+
+/** World Y where the shared stone foundation begins; tile columns drop to here. */
+export const FOUNDATION_Y = -0.6;
+/** Top-of-surface Y for the sunken water channel. */
+export const WATER_Y = -0.34;
+
+/** Terrace lift by distance (in rows) from the nearest home edge — 0 at the river band. */
+const ROW_LIFT = [0.2, 0.13, 0.06, 0, 0];
+
+/** Top surface height (world Y) a piece or tile-top rests at for this cell. */
+export function surfaceY(pos: Position): number {
+  if (WATER.some((w) => samePos(w, pos))) return WATER_Y;
+  const fromEdge = Math.min(pos.row, BOARD_ROWS - 1 - pos.row);
+  return ROW_LIFT[fromEdge] ?? 0;
+}

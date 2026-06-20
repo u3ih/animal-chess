@@ -15,6 +15,7 @@ import { memo, useEffect } from "react";
 import { AnimalPiece } from "./AnimalPiece";
 import { Board3D } from "./Board3D";
 import { CaptureBurst, DenBeam, Motes } from "./effects";
+import type { EquippedCostumes } from "./skins";
 
 const TEAM_COLOR: Record<Player, string> = { red: "#ffcaa0", blue: "#a9c8ff" };
 
@@ -62,6 +63,7 @@ function capturedFromLastMove(state: GameState): Piece | null {
 function Scene({
   state,
   pieceLabels,
+  equippedCostumes,
   selectedPieceId,
   legalMoves,
   interactive,
@@ -71,6 +73,7 @@ function Scene({
 }: {
   state: GameState;
   pieceLabels: Record<PieceKind, string>;
+  equippedCostumes?: EquippedCostumes;
   selectedPieceId?: string;
   legalMoves: Move[];
   interactive: boolean;
@@ -119,6 +122,7 @@ function Scene({
           key={piece.id}
           piece={piece}
           label={pieceLabels[piece.kind]}
+          costumeId={equippedCostumes?.[piece.kind]}
           selected={piece.id === selectedPieceId}
           active={playing && piece.owner === state.turn}
           interactive={interactive}
@@ -133,6 +137,7 @@ function Scene({
             key={`capture-${captured.id}-${state.history.length}`}
             piece={captured}
             label={pieceLabels[captured.kind]}
+            costumeId={equippedCostumes?.[captured.kind]}
             selected={false}
             active={false}
             interactive={false}
@@ -153,6 +158,7 @@ function Scene({
 export const GameCanvas = memo(function GameCanvas({
   state,
   pieceLabels,
+  equippedCostumes,
   selectedPieceId,
   legalMoves,
   interactive,
@@ -161,6 +167,7 @@ export const GameCanvas = memo(function GameCanvas({
 }: {
   state: GameState;
   pieceLabels: Record<PieceKind, string>;
+  equippedCostumes?: EquippedCostumes;
   selectedPieceId?: string;
   legalMoves: Move[];
   interactive: boolean;
@@ -180,6 +187,7 @@ export const GameCanvas = memo(function GameCanvas({
       <Scene
         state={state}
         pieceLabels={pieceLabels}
+        equippedCostumes={equippedCostumes}
         selectedPieceId={selectedPieceId}
         legalMoves={legalMoves}
         interactive={interactive}

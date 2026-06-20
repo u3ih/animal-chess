@@ -4,7 +4,7 @@ import type { Position } from "@animal-chess/game-core";
 import { type ThreeEvent, useFrame } from "@react-three/fiber";
 import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { getTerrain, tileToWorld } from "./coords";
+import { FOUNDATION_Y, getTerrain, surfaceY, tileToWorld } from "./coords";
 import { getLightningTexture, getMossStoneTexture, getStoneTexture, getWaterTexture } from "./textures";
 
 /** Owner tint laid faintly over the stone of trap/den tiles. */
@@ -58,9 +58,14 @@ export function Tile({
 }) {
   const terrain = getTerrain(pos);
   const [wx, , wz] = tileToWorld(pos);
+  const sy = surfaceY(pos);
   const [hovered, setHovered] = useState(false);
   const isWater = terrain === "water";
   const isStone = terrain !== "grass";
+
+  // Local Y where the stone column under this tile bottoms out at the shared foundation.
+  const columnBottom = FOUNDATION_Y - sy;
+  const TOP_H = isWater ? 0.12 : 0.18; // tile-top thickness; top face sits at local 0
 
   const topTexture = useMemo(() => {
     if (isWater) return getWaterTexture();
@@ -76,10 +81,10 @@ export function Tile({
         : "#ffffff";
 
   return (
-    <group position={[wx, 0, wz]}>
+    <group position={[wx, sy, wz]}>
       <mesh
         receiveShadow
-        position={[0, isWater ? -0.18 : -0.1, 0]}
+        position={[0, -TOP_H / 2, 0]}
         onClick={(e: ThreeEvent<MouseEvent>) => {
           e.stopPropagation();
           onCellClick(pos);
@@ -90,7 +95,7 @@ export function Tile({
         }}
         onPointerOut={() => setHovered(false)}
       >
-        <boxGeometry args={[0.96, isWater ? 0.1 : 0.2, 0.96]} />
+        <boxGeometry args={[0.96, TOP_H, 0.96]} />
         <meshStandardMaterial
           map={topTexture}
           color={tint}
@@ -103,13 +108,11 @@ export function Tile({
         />
       </mesh>
 
-      {/* stone skirt below the top for terrace depth */}
-      {!isWater ? (
-        <mesh position={[0, -0.3, 0]}>
-          <boxGeometry args={[0.96, 0.2, 0.96]} />
-          <meshStandardMaterial map={getStoneTexture()} color="#6f6957" roughness={1} />
-        </mesh>
-      ) : null}
+      {/* stone column dropping to the shared foundation — exposes terrace sides & moat banks */}
+      <mesh receiveShadow position={[0, (-TOP_H + columnBottom) / 2, 0]}>
+        <boxGeometry args={[0.96, -TOP_H - columnBottom, 0.96]} />
+        <meshStandardMaterial map={getStoneTexture()} color={isWater ? "#5a5444" : "#6f6957"} roughness={1} />
+      </mesh>
 
       {/* electrified trap cell: crackling lightning instead of a carved cross */}
       {terrain === "trap-red" || terrain === "trap-blue" ? <TrapLightning /> : null}
