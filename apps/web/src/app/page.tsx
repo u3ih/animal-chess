@@ -27,24 +27,27 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChatPanel } from "@/components/chat-panel";
 import { FriendListPanel } from "@/components/friend-list-panel";
-import { GuestLoginPanel } from "@/components/guest-login-panel";
+import { InGameChat } from "@/components/in-game-chat";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import { OnlinePanel } from "@/components/online-panel";
 import { PlayerBadge } from "@/components/player-badge";
 import { ProfilePanel } from "@/components/profile-panel";
 import { RankRail } from "@/components/rank-rail";
+import { RewardsPanel } from "@/components/rewards-panel";
+import { LobbyScreen } from "@/components/screens/LobbyScreen";
+import { LoginScreen } from "@/components/screens/LoginScreen";
 import { MenuScreen } from "@/components/screens/MenuScreen";
 import { RulesModal } from "@/components/screens/RulesModal";
 import { WinOverlay } from "@/components/screens/WinOverlay";
 import { PIECE_ORDER, useGameController } from "@/hooks/use-game-controller";
 import { STATIC_EXPORT } from "@/lib/flags";
+import styles from "./page.module.scss";
 
 function BoardLoading() {
   const { t } = useTranslation();
-  return <div className="board-loading">{t("game.boardLoading")}</div>;
+  return <div className={styles.boardLoading}>{t("game.boardLoading")}</div>;
 }
 
 const GameCanvas = dynamic(() => import("@/components/three/GameCanvas").then((m) => m.GameCanvas), {
@@ -54,8 +57,11 @@ const GameCanvas = dynamic(() => import("@/components/three/GameCanvas").then((m
 
 export default function Home() {
   const { t } = useTranslation();
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Avoid a hydration mismatch: localStorage guest + session both resolve only on the client.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const game = useGameController();
   const {
     screen,
@@ -73,6 +79,8 @@ export default function Home() {
     signInGuest,
     signOutGuest,
     online,
+    social,
+    joinOnlineRoom,
     setUsername,
     liveState,
     legalMoves,
@@ -108,6 +116,27 @@ export default function Home() {
         ? moveSecondsLeft
         : moveSecondsTotal;
 
+  // Hold the splash until the client resolves identity (NextAuth session + localStorage guest).
+  if (!mounted || sessionStatus === "loading") {
+    return (
+      <main className="menu-screen">
+        <div className="menu-card">
+          <p className="menu-sub">{t("login.loading")}</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Login gate: no Google session and no guest yet → force a sign-in choice before the menu.
+  if (!identity) {
+    return (
+      <>
+        <LoginScreen onGoogle={() => signIn("google")} onGuest={signInGuest} />
+        {showRules ? <RulesModal onClose={() => setShowRules(false)} /> : null}
+      </>
+    );
+  }
+
   if (screen === "menu") {
     return (
       <>
@@ -125,9 +154,24 @@ export default function Home() {
     );
   }
 
+  if (screen === "lobby") {
+    return (
+      <>
+        <LobbyScreen
+          online={online}
+          lobby={social.lobby}
+          statusLabel={t(online.status)}
+          onRefresh={social.refreshLobby}
+          onBack={goMenu}
+        />
+        {showRules ? <RulesModal onClose={() => setShowRules(false)} /> : null}
+      </>
+    );
+  }
+
   return (
-    <main className="game-shell">
-      <section className="arena match-skin">
+    <main className={styles.gameShell}>
+      <section className={cx(styles.arena, "match-skin")}>
         <div className="brand-logo">
           <Sparkles aria-hidden="true" />
           <span>{t("game.title")}</span>
@@ -140,15 +184,15 @@ export default function Home() {
           pieceLabels={pieceLabels}
           onSelect={selectPiece}
         />
-        <section className="board-stage">
-          <div className="board-3d">
+        <section className={styles.boardStage}>
+          <div className={styles.board3d}>
             <PlayerBadge
               side="you"
               color={youColor}
               name={youName}
               seconds={clockFor(youColor)}
               active={liveState.status.state === "playing" && liveState.turn === youColor}
-              avatarUrl={session?.user?.image}
+              avatarUrl={identity?.avatar ?? session?.user?.image}
               icon={<UserRound />}
             />
             <PlayerBadge
@@ -157,6 +201,7 @@ export default function Home() {
               name={foeName}
               seconds={clockFor(foeColor)}
               active={liveState.status.state === "playing" && liveState.turn === foeColor}
+              avatarUrl={foeSlot?.avatar}
               icon={<Headphones />}
             />
             <GameCanvas
@@ -170,10 +215,10 @@ export default function Home() {
             />
           </div>
           {selectedPiece && canAct ? (
-            <div className="board-dpad" role="toolbar" aria-label={t("game.movePad")}>
+            <div className={styles.boardDpad} role="toolbar" aria-label={t("game.movePad")}>
               <button
                 type="button"
-                className="dpad-up"
+                className={styles.dpadUp}
                 onClick={() => moveSelectedDir("up")}
                 disabled={!dpadMoves.up}
                 aria-label={t("game.moveUp")}
@@ -182,19 +227,19 @@ export default function Home() {
               </button>
               <button
                 type="button"
-                className="dpad-left"
+                className={styles.dpadLeft}
                 onClick={() => moveSelectedDir("left")}
                 disabled={!dpadMoves.left}
                 aria-label={t("game.moveLeft")}
               >
                 <ArrowLeft />
               </button>
-              <div className="dpad-core" aria-hidden="true">
+              <div className={styles.dpadCore} aria-hidden="true">
                 <Move />
               </div>
               <button
                 type="button"
-                className="dpad-right"
+                className={styles.dpadRight}
                 onClick={() => moveSelectedDir("right")}
                 disabled={!dpadMoves.right}
                 aria-label={t("game.moveRight")}
@@ -203,7 +248,7 @@ export default function Home() {
               </button>
               <button
                 type="button"
-                className="dpad-down"
+                className={styles.dpadDown}
                 onClick={() => moveSelectedDir("down")}
                 disabled={!dpadMoves.down}
                 aria-label={t("game.moveDown")}
@@ -223,8 +268,8 @@ export default function Home() {
           onSelect={selectPiece}
         />
 
-        <div className={cx("rails", drawerOpen && "open")}>
-          <div className="rails-head">
+        <div className={cx(styles.rails, drawerOpen && styles.open)}>
+          <div className={styles.railsHead}>
             <span className="panel-title">
               <LayoutPanelLeft />
               {t("game.panelsTitle")}
@@ -279,21 +324,6 @@ export default function Home() {
           <aside className="side-panel">
             {STATIC_EXPORT ? null : (
               <>
-                <OnlinePanel
-                  active={mode === "online"}
-                  onActivate={() => setMode("online")}
-                  roomId={online.snapshot?.id}
-                  status={t(online.status)}
-                  waiting={online.status === "onlineStatus.waiting"}
-                  winner={
-                    online.snapshot?.state.status.state === "won" ? online.snapshot.state.status.winner : undefined
-                  }
-                  onCreateRoom={online.createRoom}
-                  onJoinRoom={online.joinRoom}
-                  onQuickMatch={online.quickMatch}
-                  onCancelMatch={online.cancelMatch}
-                  onRematch={online.rematch}
-                />
                 {identity ? (
                   <ChatPanel
                     messages={online.snapshot?.chat ?? []}
@@ -301,20 +331,27 @@ export default function Home() {
                     onSend={online.sendChat}
                   />
                 ) : null}
-                <ProfilePanel onUsernameChange={setUsername} />
-                {!session?.user && !identity ? <GuestLoginPanel onSubmit={signInGuest} /> : null}
+                <ProfilePanel me={social.me} onRename={social.updateUsername} onUsernameChange={setUsername} />
+                {session?.user ? (
+                  <RewardsPanel
+                    dailyStatus={social.dailyStatus}
+                    quests={social.quests}
+                    onClaimDaily={() => void social.claimDaily()}
+                    onClaimQuest={social.claimQuest}
+                  />
+                ) : null}
                 <FriendListPanel
                   identity={identity}
-                  presence={online.presence}
-                  requests={online.friendRequests}
-                  acceptedFriends={online.acceptedFriends}
-                  invites={online.invites}
+                  friends={social.friends}
+                  requests={social.requests}
+                  invites={social.invites}
                   roomId={online.snapshot?.id}
-                  onRequest={online.sendFriendRequest}
-                  onAcceptRequest={online.acceptFriendRequest}
-                  onInvite={online.inviteToRoom}
-                  onAcceptInvite={online.acceptInvite}
-                  onDismissInvite={online.dismissInvite}
+                  onRequest={social.sendFriendRequest}
+                  onRespond={social.respondFriendRequest}
+                  onRemove={social.removeFriend}
+                  onInvite={(toUserId) => online.snapshot?.id && social.sendRoomInvite(toUserId, online.snapshot.id)}
+                  onAcceptInvite={joinOnlineRoom}
+                  onDismissInvite={social.dismissInvite}
                 />
               </>
             )}
@@ -323,46 +360,60 @@ export default function Home() {
 
         <button
           type="button"
-          className={cx("drawer-scrim", drawerOpen && "open")}
+          className={cx(styles.drawerScrim, drawerOpen && styles.open)}
           aria-hidden="true"
           tabIndex={-1}
           onClick={() => setDrawerOpen(false)}
         />
         <button
           type="button"
-          className="drawer-toggle"
+          className={styles.drawerToggle}
           aria-expanded={drawerOpen}
           onClick={() => setDrawerOpen((value) => !value)}
         >
           <LayoutPanelLeft />
           <span>{t("game.panelsTitle")}</span>
         </button>
+
+        {!STATIC_EXPORT && mode === "online" && online.snapshot ? (
+          <InGameChat
+            messages={online.snapshot.chat}
+            disabled={false}
+            onSend={online.sendChat}
+            selfId={identity.userId}
+          />
+        ) : null}
       </section>
 
-      <footer className="topbar footer-bar">
+      <footer className={cx(styles.topbar, styles.footerBar)}>
         <p className="eyebrow">{t("game.eyebrow")}</p>
-        <div className="topbar-actions">
+        <div className={styles.topbarActions}>
           <LanguageSwitcher />
           {mode === "online" && foeSlot ? (
             // biome-ignore lint/a11y/useSemanticElements: visual grouping; <fieldset> would break the flex layout and need a legend
-            <div className="footer-faceoff" role="group" aria-label={t("game.faceoff")}>
-              <span className={cx("faceoff-side", youColor)}>
-                <span className="faceoff-avatar">
-                  {session?.user?.image ? (
+            <div className={styles.footerFaceoff} role="group" aria-label={t("game.faceoff")}>
+              <span className={cx(styles.faceoffSide, styles[youColor])}>
+                <span className={styles.faceoffAvatar}>
+                  {(identity?.avatar ?? session?.user?.image) ? (
                     // biome-ignore lint/performance/noImgElement: remote avatar on static export; next/image optimization is off
-                    <img src={session.user.image} alt="" referrerPolicy="no-referrer" />
+                    <img src={identity?.avatar ?? session?.user?.image ?? ""} alt="" referrerPolicy="no-referrer" />
                   ) : (
                     <UserRound />
                   )}
                 </span>
-                <span className="faceoff-name">{youName}</span>
+                <span className={styles.faceoffName}>{youName}</span>
               </span>
-              <Swords className="faceoff-vs" aria-hidden="true" />
-              <span className={cx("faceoff-side", foeColor)}>
-                <span className="faceoff-avatar">
-                  <Headphones />
+              <Swords className={styles.faceoffVs} aria-hidden="true" />
+              <span className={cx(styles.faceoffSide, styles[foeColor])}>
+                <span className={styles.faceoffAvatar}>
+                  {foeSlot?.avatar ? (
+                    // biome-ignore lint/performance/noImgElement: remote avatar on static export; next/image optimization is off
+                    <img src={foeSlot.avatar} alt="" referrerPolicy="no-referrer" />
+                  ) : (
+                    <Headphones />
+                  )}
                 </span>
-                <span className="faceoff-name">{foeName}</span>
+                <span className={styles.faceoffName}>{foeName}</span>
               </span>
             </div>
           ) : (

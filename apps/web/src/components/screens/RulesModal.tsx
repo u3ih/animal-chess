@@ -4,6 +4,7 @@ import type { PieceKind } from "@animal-chess/game-core";
 import { useTranslation } from "@animal-chess/i18n";
 import { Button, IconButton, Modal } from "@animal-chess/ui";
 import { Droplets, Flag, ShieldAlert, Sparkles, X } from "lucide-react";
+import styles from "./RulesModal.module.scss";
 
 const PIECE_ROWS: { kind: PieceKind; rank: number }[] = [
   { kind: "elephant", rank: 8 },
@@ -28,13 +29,13 @@ export function RulesModal({ onClose }: { onClose: () => void }) {
         <IconButton className="icon-btn" label={t("common.close")} icon={<X />} onClick={onClose} />
       </header>
 
-      <div className="rules-body">
+      <div className={styles.rulesBody}>
         <section>
           <h3>{t("rules.rankTitle")}</h3>
-          <div className="rank-table">
+          <div className={styles.rankTable}>
             {PIECE_ROWS.map((p) => (
-              <div key={p.kind} className="rank-row">
-                <span className="rank-chip">{p.rank}</span>
+              <div key={p.kind} className={styles.rankRow}>
+                <span className={styles.rankChip}>{p.rank}</span>
                 <strong>{t(`pieces.${p.kind}`)}</strong>
               </div>
             ))}
@@ -44,7 +45,7 @@ export function RulesModal({ onClose }: { onClose: () => void }) {
 
         <section>
           <h3>{t("rules.terrainTitle")}</h3>
-          <ul className="rules-list">
+          <ul className={styles.rulesList}>
             <li>
               <Droplets />{" "}
               <span>
@@ -69,7 +70,7 @@ export function RulesModal({ onClose }: { onClose: () => void }) {
 
         <section>
           <h3>{t("rules.winTitle")}</h3>
-          <ul className="rules-list">
+          <ul className={styles.rulesList}>
             <li>
               <span>{t("rules.winDen")}</span>
             </li>

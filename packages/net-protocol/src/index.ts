@@ -1,5 +1,12 @@
 import type { GameState, Move, Player } from "@animal-chess/game-core";
 
+/**
+ * Socket.IO contract for the **Node game server** only.
+ *
+ * Social/presence/friends/invites/rank/gamification moved to the Python GraphQL backend
+ * (see `@animal-chess/social-protocol`). This contract is now strictly about live games.
+ */
+
 /** Move payload exchanged over the wire (full Move is derived server-side). */
 export type MovePayload = Pick<Move, "pieceId" | "to">;
 
@@ -7,7 +14,11 @@ export type MovePayload = Pick<Move, "pieceId" | "to">;
 export type IdentityPayload = {
   userId: string;
   username: string;
+  /** Optional avatar URL (Google profile photo); guests have none. */
+  avatar?: string;
 };
+
+export type RoomVisibility = "public" | "private";
 
 export type ChatMessage = {
   id: string;
@@ -22,49 +33,39 @@ export type RoomPlayer = {
   username: string;
   color: Player;
   connected: boolean;
+  /** Avatar URL (Google profile photo); undefined for guests. */
+  avatar?: string;
+  /** Lobby readiness. Host (players[0]) starts the game and is implicitly ready. */
+  ready: boolean;
 };
+
+/** A room is in `lobby` (waiting + ready-up) until the host starts, then `playing`. */
+export type RoomPhase = "lobby" | "playing";
 
 export type RoomSnapshot = {
   id: string;
+  phase: RoomPhase;
   players: RoomPlayer[];
   state: GameState;
   timer: Record<Player, number>;
   chat: ChatMessage[];
 };
 
-export type PresenceEntry = {
-  userId: string;
-  username: string;
-  roomId?: string;
-};
-
-export type FriendRequest = {
-  id: string;
-  fromUserId: string;
-  fromUsername: string;
-  toUsername: string;
-};
-
-export type RoomInvite = {
-  id: string;
-  fromUserId: string;
-  fromUsername: string;
-  roomId: string;
-};
-
 /** Events the client emits and the server listens for. */
 export type ClientToServerEvents = {
-  "social:identify": (payload: IdentityPayload) => void;
-  "room:create": (payload: IdentityPayload) => void;
+  "room:create": (payload: IdentityPayload & { visibility?: RoomVisibility }) => void;
   "room:join": (payload: IdentityPayload & { roomId: string }) => void;
+  /** Non-host toggles their lobby readiness. */
+  "room:ready": () => void;
+  /** Host starts the match once the opponent is ready. */
+  "room:start": () => void;
+  /** Leave the current room and return to the lobby browser. */
+  "room:leave": () => void;
   "matchmaking:join": (payload: IdentityPayload) => void;
   "matchmaking:leave": () => void;
   "game:move": (payload: MovePayload) => void;
   "game:rematch": () => void;
   "chat:send": (payload: IdentityPayload & { text: string }) => void;
-  "social:friend-request": (payload: { toUsername: string }) => void;
-  "social:friend-accept": (payload: { requestId: string }) => void;
-  "social:invite": (payload: { toUsername: string }) => void;
 };
 
 /** Events the server emits and the client listens for. */
@@ -76,8 +77,4 @@ export type ServerToClientEvents = {
   "matchmaking:waiting": () => void;
   "room:error": (message: string) => void;
   "game:rejected": (payload: MovePayload) => void;
-  "social:presence": (presence: PresenceEntry[]) => void;
-  "social:requests": (requests: FriendRequest[]) => void;
-  "social:friend-accepted": (username: string) => void;
-  "social:invite": (invite: RoomInvite) => void;
 };

@@ -1,0 +1,68 @@
+/* Friend list, requests, and room invites. Was `.friend-list*` / `.friend-requests` / `.room-invites` in globals.scss. */
+.friendList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.friendList p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.friendList span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.friendList button {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.friendList svg {
+  width: 14px;
+}
+
+.friendList :global(.lucide-circle) {
+  width: 10px;
+  fill: transparent;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.friendList :global(.lucide-circle.online) {
+  fill: #67d17d;
+  color: #67d17d;
+}
+
+.friendRequests,
+.roomInvites {
+  display: grid;
+  gap: 8px;
+}
+
+.friendRequests button {
+  justify-content: flex-start;
+}
+
+.roomInvites div {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.roomInvites span {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 13px;
+}

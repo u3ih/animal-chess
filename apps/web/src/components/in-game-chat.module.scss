@@ -1,0 +1,101 @@
+/* Floating in-match chat — docked bottom-left, above the panels drawer toggle. Was `.ingame-chat*` in globals.scss. */
+.ingameChatBubble {
+  position: fixed;
+  left: 18px;
+  bottom: 80px;
+  z-index: 48;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(12, 18, 12, 0.82);
+  border: 1px solid rgba(255, 233, 168, 0.32);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.ingameChatBubble svg {
+  width: 22px;
+  height: 22px;
+  color: var(--gold);
+}
+
+.ingameChatBadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--danger);
+  color: #1a0d08;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ingameChat {
+  position: fixed;
+  left: 18px;
+  bottom: 80px;
+  z-index: 48;
+  width: min(340px, 92vw);
+  max-height: min(60vh, 460px);
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+
+.ingameChatHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ingameChatHead button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+}
+
+.ingameChat form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.ingameChat form input {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  padding: 0 10px;
+}
+
+.ingameChat form button {
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 720px) {
+  .ingameChat,
+  .ingameChatBubble {
+    bottom: 76px;
+  }
+}

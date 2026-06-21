@@ -11,6 +11,7 @@ import {
 import { useTranslation } from "@animal-chess/i18n";
 import { Button, cx, Panel } from "@animal-chess/ui";
 import { BadgeInfo } from "lucide-react";
+import styles from "./piece-roster.module.scss";
 
 const PIECE_ORDER = Object.keys(PIECE_RANK) as PieceKind[];
 
@@ -31,8 +32,8 @@ export function PieceRoster({
   const canSelect = state.status.state === "playing" && state.turn === owner && localColor === owner;
 
   return (
-    <Panel as="div" className={`piece-roster ${owner}`} icon={<BadgeInfo />} title={t("roster.title")}>
-      <div className="piece-grid">
+    <Panel as="div" className={cx(styles.pieceRoster, styles[owner])} icon={<BadgeInfo />} title={t("roster.title")}>
+      <div className={styles.pieceGrid}>
         {PIECE_ORDER.map((kind) => {
           const piece = state.pieces.find((item) => item.owner === owner && item.kind === kind);
           const moves = piece ? legalMovesForPiece(state, piece.id) : [];
@@ -40,7 +41,7 @@ export function PieceRoster({
           return (
             <Button
               key={kind}
-              className={cx(!piece && "defeated", piece?.id === selectedPieceId && "selected")}
+              className={cx(!piece && styles.defeated, piece?.id === selectedPieceId && styles.selected)}
               onClick={() => piece && onSelect(piece)}
               disabled={!piece || !canSelect}
               title={

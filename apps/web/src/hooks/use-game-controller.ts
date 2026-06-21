@@ -20,6 +20,8 @@ import { useBackgroundMusic } from "@/hooks/use-background-music";
 import { useGameAudio } from "@/hooks/use-game-audio";
 import { useOnlineGame } from "@/hooks/use-online-game";
 import { usePlayerIdentity } from "@/hooks/use-player-identity";
+import { useSocial } from "@/hooks/use-social";
+import { STATIC_EXPORT } from "@/lib/flags";
 
 export type Mode = "ai" | "online";
 
@@ -54,7 +56,7 @@ function samePosition(a: Position, b: Position): boolean {
  * handling, and derived board data. Keeps `page.tsx` focused on rendering + i18n.
  */
 export function useGameController() {
-  const [screen, setScreen] = useState<"menu" | "game">("menu");
+  const [screen, setScreen] = useState<"menu" | "lobby" | "game">("menu");
   const [showRules, setShowRules] = useState(false);
   const [mode, setMode] = useState<Mode>("ai");
   const [aiLevel, setAiLevel] = useState<AiLevel>("medium");
@@ -68,6 +70,37 @@ export function useGameController() {
   useBackgroundMusic(screen === "game" && audioEnabled);
   const { identity, signInGuest, signOutGuest } = usePlayerIdentity(username);
   const online = useOnlineGame(identity);
+  const social = useSocial(identity);
+
+  /** Switch to online mode and join a Node room by code (lobby join / invite accept / deep link). */
+  function joinOnlineRoom(roomCode: string) {
+    setMode("online");
+    setScreen("lobby");
+    online.joinRoom(roomCode.toUpperCase());
+  }
+
+  // Deep link: `?room=CODE` auto-joins that room once, then strips the param.
+  const deepLinkDone = useRef(false);
+  const joinOnlineRoomRef = useRef(joinOnlineRoom);
+  joinOnlineRoomRef.current = joinOnlineRoom;
+  useEffect(() => {
+    if (STATIC_EXPORT || deepLinkDone.current || typeof window === "undefined") return;
+    const code = new URLSearchParams(window.location.search).get("room");
+    if (!code) return;
+    deepLinkDone.current = true;
+    joinOnlineRoomRef.current(code);
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
+
+  // Online screen follows the room phase: lobby (browser / ready room) ↔ game (board).
+  // A vanished snapshot while on the board (opponent left / room closed) falls back to the lobby.
+  const onlinePhase = online.phase;
+  useEffect(() => {
+    if (mode !== "online") return;
+    if (onlinePhase === "playing") setScreen("game");
+    else if (onlinePhase === "lobby") setScreen("lobby");
+    else setScreen((prev) => (prev === "game" ? "lobby" : prev));
+  }, [mode, onlinePhase]);
 
   const liveState = mode === "online" && online.snapshot ? online.snapshot.state : state;
   const legalMoves = useMemo(
@@ -162,11 +195,17 @@ export function useGameController() {
   }
 
   function startGame() {
-    if (mode === "ai") resetGame();
-    setScreen("game");
+    if (mode === "ai") {
+      resetGame();
+      setScreen("game");
+    } else {
+      // Online: enter the lobby (room browser); the match board opens once the host starts.
+      setScreen("lobby");
+    }
   }
 
   function goMenu() {
+    if (mode === "online" && online.snapshot) online.leaveRoom();
     setScreen("menu");
     setSelectedPieceId(undefined);
   }
@@ -264,6 +303,8 @@ export function useGameController() {
     signInGuest,
     signOutGuest,
     online,
+    social,
+    joinOnlineRoom,
     setUsername,
     // derived board data
     liveState,

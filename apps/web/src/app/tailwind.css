@@ -1,0 +1,15 @@
+/*
+ * Tailwind v4 entry — utilities only.
+ *
+ * Preflight (Tailwind's CSS reset) is deliberately OMITTED: the app ships its
+ * own reset in globals.scss, and layering preflight on top of fully hand-styled
+ * components would clobber them. We import just the theme tokens + utilities by
+ * pulling the layers individually instead of `@import "tailwindcss"`.
+ */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* Source globs: app code + the shared UI package (outside this app's tree). */
+@source "../**/*.{ts,tsx}";
+@source "../../../../packages/ui/src/**/*.{ts,tsx}";

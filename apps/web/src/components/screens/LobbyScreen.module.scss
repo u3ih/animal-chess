@@ -1,0 +1,59 @@
+/* Online lobby screen. Was `.lobby-*` in the "lobby screen" section of globals.scss. */
+.lobbyCard {
+  width: min(560px, 100%);
+}
+
+.lobbyCard :global(.menu-toolbar) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* .lobby-actions and .lobby-join now use Tailwind utilities — see LobbyScreen.tsx. */
+
+.lobbyBrowser {
+  border-top: 1px solid var(--panel-border);
+  padding-top: 14px;
+  text-align: left;
+}
+
+.lobbyBrowserHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.lobbyEmpty {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 6px 0;
+}
+
+.lobbyRoomList {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.lobbyRoom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--panel-border);
+}
+
+.lobbyRoom strong {
+  flex: 1;
+  font-size: 14px;
+}
+
+.lobbyRoom em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--gold);
+}

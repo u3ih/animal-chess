@@ -1,0 +1,68 @@
+/* Win overlay card (Cờ Thú match end). Was `.win-*` in globals.scss. */
+.winCard {
+  width: min(420px, 100%);
+  padding: 30px 26px;
+  text-align: center;
+  border-radius: 18px;
+  background: rgba(16, 24, 16, 0.96);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  animation: pop-in 260ms ease;
+}
+
+.winCard.red {
+  border-color: rgba(196, 91, 66, 0.6);
+}
+
+.winCard.blue {
+  border-color: rgba(95, 140, 200, 0.6);
+}
+
+.winTrophy {
+  width: 74px;
+  height: 74px;
+  margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(226, 187, 97, 0.4), rgba(226, 187, 97, 0.08));
+  color: var(--gold);
+}
+
+.winTrophy svg {
+  width: 38px;
+  height: 38px;
+}
+
+.winEyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.winCard h2 {
+  margin: 6px 0 8px;
+  font-size: 28px;
+}
+
+.winReason {
+  margin: 0 0 22px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.winActions {
+  display: grid;
+  gap: 10px;
+}
+
+.winActions button {
+  min-height: 46px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@animal-chess/social-protocol",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GraphQL contract (types + operation documents) for the Python social/rank/gamification backend. SDL source of truth: schema.graphql (exported by services/api).",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "codegen": "echo 'schema.graphql is the source of truth; wire graphql-codegen here to regenerate src/index.ts types'"
+  }
+}

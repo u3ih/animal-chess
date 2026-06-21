@@ -1,0 +1,61 @@
+/* Chat content (message feed + quick chips). Was `.chat-log*`/`.chat-quick*`/`.chat-chip*` in globals.scss. */
+.chatLog {
+  min-height: 110px;
+  max-height: 180px;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.chatLog p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.chatLog article {
+  display: grid;
+  gap: 2px;
+}
+
+.chatLog strong {
+  font-size: 12px;
+  color: var(--gold);
+}
+
+.chatLog span {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.chatQuick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chatQuick .chatChip {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chatQuick .chatChip:hover:not(:disabled) {
+  border-color: rgba(226, 187, 97, 0.54);
+}
+
+.chatQuick .chatChip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.chatQuick .chatChipEmoji {
+  padding: 0 9px;
+  font-size: 16px;
+}

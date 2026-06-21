@@ -2,8 +2,9 @@
 
 import { useTranslation } from "@animal-chess/i18n";
 import { Button, cx, Input, Panel } from "@animal-chess/ui";
-import { Link2, RadioTower, RefreshCcw, Swords, X } from "lucide-react";
+import { Check, Link2, RadioTower, RefreshCcw, Share2, Swords, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { BASE_PATH } from "@/lib/flags";
 
 export function OnlinePanel({
   active,
@@ -32,10 +33,19 @@ export function OnlinePanel({
 }) {
   const { t } = useTranslation();
   const [roomCode, setRoomCode] = useState("");
+  const [copied, setCopied] = useState(false);
 
   function createRoom() {
     onActivate();
     onCreateRoom();
+  }
+
+  function shareRoom() {
+    if (!roomId || typeof window === "undefined") return;
+    const url = `${window.location.origin}${BASE_PATH}/?room=${roomId}`;
+    void navigator.clipboard?.writeText(url);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
   }
 
   function joinRoom(event: FormEvent) {
@@ -52,7 +62,14 @@ export function OnlinePanel({
   return (
     <Panel as="div" className={cx("online-panel", active && "active")} icon={<RadioTower />} title={t("online.title")}>
       <p>{status}</p>
-      {roomId ? <strong>{t("online.roomCode", { id: roomId })}</strong> : null}
+      {roomId ? (
+        <div className="room-share">
+          <strong>{t("online.roomCode", { id: roomId })}</strong>
+          <Button onClick={shareRoom} icon={copied ? <Check /> : <Share2 />}>
+            {copied ? t("online.copied") : t("online.shareLink")}
+          </Button>
+        </div>
+      ) : null}
       <div className="panel-actions">
         <Button onClick={createRoom} icon={<Link2 />}>
           {t("online.createRoom")}

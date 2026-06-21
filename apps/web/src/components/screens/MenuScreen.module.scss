@@ -1,0 +1,82 @@
+/* Menu screen mode picker + difficulty/actions. Was `.menu-*` in globals.scss. */
+.menuModes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.menuMode {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 18px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.menuMode svg {
+  width: 26px;
+  height: 26px;
+  color: var(--gold);
+}
+
+.menuMode strong {
+  font-size: 15px;
+}
+
+.menuMode span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.menuMode.active {
+  border-color: rgba(226, 187, 97, 0.8);
+  background: rgba(226, 187, 97, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(226, 187, 97, 0.25);
+}
+
+.menuDifficulty {
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 18px;
+}
+
+.menuDifficulty select {
+  min-height: 42px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  padding: 0 12px;
+}
+
+.menuNote {
+  margin: 0 0 18px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.menuActions {
+  display: grid;
+  gap: 10px;
+}
+
+.menuActions button {
+  min-height: 48px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.menuGreeting {
+  margin: 16px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}

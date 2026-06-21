@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import next from "next";
 import { Server } from "socket.io";
-import { registerRealtimeServer } from "./src/server/realtime";
+import { registerRealtimeServer, roomsSnapshot } from "./src/server/realtime";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOSTNAME ?? "0.0.0.0";
@@ -12,7 +12,15 @@ const handler = app.getRequestHandler();
 async function main() {
   await app.prepare();
 
-  const httpServer = createServer((req, res) => handler(req, res));
+  const httpServer = createServer((req, res) => {
+    // Lets the Python backend rebuild its lobby cache on startup (open public rooms).
+    if (req.url === "/internal/rooms/snapshot") {
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify(roomsSnapshot()));
+      return;
+    }
+    handler(req, res);
+  });
   const io = new Server(httpServer, {
     cors: {
       origin: true,

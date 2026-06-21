@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
   transpilePackages: [
     "@animal-chess/game-core",
     "@animal-chess/net-protocol",
+    "@animal-chess/social-protocol",
     "@animal-chess/i18n",
     "@animal-chess/ui"
   ],

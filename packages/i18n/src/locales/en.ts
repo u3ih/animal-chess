@@ -123,7 +123,24 @@ const en = {
     quickMatch: "Quick match",
     cancelMatch: "Cancel search",
     roomCodePlaceholder: "Enter room code",
-    rematch: "Rematch"
+    rematch: "Rematch",
+    shareLink: "Share",
+    copied: "Copied!"
+  },
+  room: {
+    title: "Waiting room",
+    you: "You",
+    host: "Host",
+    ready: "Ready",
+    cancelReady: "Cancel ready",
+    readyTag: "Ready",
+    notReadyTag: "Not ready",
+    start: "Start game",
+    startHint: "Waiting for your opponent to join and ready up.",
+    waitingOpponent: "Waiting for an opponent…",
+    waitingHostStart: "Waiting for the host to start…",
+    leave: "Leave room",
+    disconnected: "Disconnected"
   },
   onlineStatus: {
     disconnected: "Not connected",
@@ -137,7 +154,16 @@ const en = {
   chat: {
     title: "Chat",
     empty: "No messages yet",
-    placeholder: "Message the room"
+    placeholder: "Message the room",
+    quickLabel: "Quick chat",
+    quick: {
+      gg: "Good game!",
+      nice: "Nice move!",
+      oops: "Oops!",
+      hurry: "Hurry up!",
+      close: "So close!",
+      gl: "Good luck!"
+    }
   },
   profile: {
     title: "Profile",
@@ -149,14 +175,64 @@ const en = {
     namePlaceholder: "Guest name",
     play: "Play"
   },
+  login: {
+    title: "Welcome",
+    subtitle: "Sign in to play online, or jump in quickly as a guest.",
+    google: "Sign in with Google",
+    or: "or",
+    guestPlaceholder: "Display name",
+    guestCta: "Continue as guest",
+    loading: "Loading…"
+  },
   friends: {
     title: "Friends",
     invitePlaceholder: "Send a request",
     accept: "Accept {{name}}",
+    decline: "Decline {{name}}",
     empty: "No friends yet",
     invite: "Invite {{name}}",
     remove: "Remove {{name}}",
-    invitedToRoom: "invited you to room {{id}}"
+    invitedToRoom: "invited you to room {{id}}",
+    signInRequired: "Sign in with Google to use your friends list."
+  },
+  lobby: {
+    title: "Lobby",
+    heading: "Online lobby",
+    back: "Back",
+    refresh: "Refresh",
+    empty: "No open rooms right now."
+  },
+  rank: {
+    tier: "Tier"
+  },
+  tier: {
+    bronze: "Bronze",
+    silver: "Silver",
+    gold: "Gold",
+    platinum: "Platinum",
+    diamond: "Diamond"
+  },
+  gamification: {
+    title: "Rewards",
+    coins: "Coins",
+    level: "Level",
+    levelShort: "Lvl {{level}}",
+    claimDaily: "Claim daily",
+    claimed: "Claimed today",
+    streakDays: "{{count}}-day streak"
+  },
+  quests: {
+    empty: "No quests yet.",
+    claim: "Claim",
+    claimed: "Claimed",
+    WIN_1: "Win 1 game",
+    WIN_3: "Win 3 games",
+    PLAY_3: "Play 3 games",
+    PLAY_5: "Play 5 games",
+    STREAK_2: "Win 2 in a row",
+    CAPTURE_ELEPHANT: "Capture an elephant",
+    CAPTURE_ANY_3: "Capture 3 pieces",
+    LOGIN_1: "Log in today"
   },
   rules: {
     ariaLabel: "Rules",

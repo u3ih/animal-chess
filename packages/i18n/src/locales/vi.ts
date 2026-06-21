@@ -123,7 +123,24 @@ const vi = {
     quickMatch: "Ghép nhanh",
     cancelMatch: "Hủy tìm trận",
     roomCodePlaceholder: "Nhập mã phòng",
-    rematch: "Rematch"
+    rematch: "Rematch",
+    shareLink: "Chia sẻ",
+    copied: "Đã chép!"
+  },
+  room: {
+    title: "Phòng chờ",
+    you: "Bạn",
+    host: "Chủ phòng",
+    ready: "Sẵn sàng",
+    cancelReady: "Hủy sẵn sàng",
+    readyTag: "Đã sẵn sàng",
+    notReadyTag: "Chưa sẵn sàng",
+    start: "Bắt đầu",
+    startHint: "Chờ đối thủ vào phòng và bấm sẵn sàng.",
+    waitingOpponent: "Đang chờ đối thủ…",
+    waitingHostStart: "Đang chờ chủ phòng bắt đầu…",
+    leave: "Rời phòng",
+    disconnected: "Mất kết nối"
   },
   onlineStatus: {
     disconnected: "Chưa kết nối",
@@ -137,7 +154,16 @@ const vi = {
   chat: {
     title: "Chat",
     empty: "Chưa có tin nhắn",
-    placeholder: "Nhắn trong phòng"
+    placeholder: "Nhắn trong phòng",
+    quickLabel: "Nhắn nhanh",
+    quick: {
+      gg: "Hay lắm!",
+      nice: "Nước hay!",
+      oops: "Ối!",
+      hurry: "Nhanh lên nào!",
+      close: "Sát nút!",
+      gl: "Chúc may mắn!"
+    }
   },
   profile: {
     title: "Hồ sơ",
@@ -149,14 +175,64 @@ const vi = {
     namePlaceholder: "Tên khách",
     play: "Vào chơi"
   },
+  login: {
+    title: "Chào mừng bạn",
+    subtitle: "Đăng nhập để chơi online, hoặc vào nhanh với tư cách khách.",
+    google: "Đăng nhập với Google",
+    or: "hoặc",
+    guestPlaceholder: "Tên hiển thị",
+    guestCta: "Vào với tư cách khách",
+    loading: "Đang tải…"
+  },
   friends: {
     title: "Bạn bè",
     invitePlaceholder: "Gửi lời mời",
     accept: "Chấp nhận {{name}}",
+    decline: "Từ chối {{name}}",
     empty: "Chưa có bạn bè",
     invite: "Mời {{name}}",
     remove: "Xóa {{name}}",
-    invitedToRoom: "mời vào phòng {{id}}"
+    invitedToRoom: "mời vào phòng {{id}}",
+    signInRequired: "Đăng nhập Google để dùng danh sách bạn bè."
+  },
+  lobby: {
+    title: "Sảnh chờ",
+    heading: "Sảnh chờ online",
+    back: "Quay lại",
+    refresh: "Làm mới",
+    empty: "Chưa có phòng nào đang mở."
+  },
+  rank: {
+    tier: "Bậc"
+  },
+  tier: {
+    bronze: "Đồng",
+    silver: "Bạc",
+    gold: "Vàng",
+    platinum: "Bạch kim",
+    diamond: "Kim cương"
+  },
+  gamification: {
+    title: "Phần thưởng",
+    coins: "Xu",
+    level: "Cấp",
+    levelShort: "Cấp {{level}}",
+    claimDaily: "Nhận thưởng ngày",
+    claimed: "Đã nhận hôm nay",
+    streakDays: "Chuỗi {{count}} ngày"
+  },
+  quests: {
+    empty: "Chưa có nhiệm vụ.",
+    claim: "Nhận",
+    claimed: "Đã nhận",
+    WIN_1: "Thắng 1 ván",
+    WIN_3: "Thắng 3 ván",
+    PLAY_3: "Chơi 3 ván",
+    PLAY_5: "Chơi 5 ván",
+    STREAK_2: "Thắng 2 ván liên tiếp",
+    CAPTURE_ELEPHANT: "Ăn 1 con Voi",
+    CAPTURE_ANY_3: "Ăn 3 quân địch",
+    LOGIN_1: "Đăng nhập hôm nay"
   },
   rules: {
     ariaLabel: "Luật chơi",
