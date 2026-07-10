@@ -49,7 +49,7 @@ Browser
 ## Run the full project
 
 ### 0. Prerequisites
-- **Node ≥ 20** + **pnpm 11.7** (`corepack enable`)
+- **Node ≥ 26** + **pnpm 11.7** (`corepack enable`)
 - **Python ≥ 3.10**
 - **Docker** (for Postgres + Redis) — or your own Postgres 16 / Redis 7
 - A **Google OAuth** client (for Google sign-in) — optional; guests work without it
@@ -147,6 +147,66 @@ GraphQL subscriptions; the daily bonus is claimable once per day; friends persis
 `NEXT_PUBLIC_STATIC=1 pnpm --filter @animal-chess/web build` produces a static, server-less export
 (single-player vs AI only). Online play, social, lobby, and the GraphQL client are disabled in that
 build — it needs no backend.
+
+---
+
+## Production deploy (Docker VPS)
+
+The full online app can run on a single Docker VPS: Caddy terminates HTTP/HTTPS, the web container
+serves Next.js + Socket.IO, the API container serves GraphQL, and Postgres/Redis stay private inside
+the Docker network.
+
+### VPS prerequisites
+
+- Ubuntu/Debian VPS with Docker Engine + Docker Compose plugin
+- Ports `80` and `443` open in the cloud firewall
+- A domain `A` record pointing at the VPS IP for automatic HTTPS
+
+### 1. Configure production env
+
+```bash
+cp .env.production.example .env.production
+openssl rand -base64 32   # NEXTAUTH_SECRET
+openssl rand -base64 32   # INTERNAL_SYNC_SECRET
+```
+
+Edit `.env.production`:
+
+```ini
+DOMAIN=chess.example.com
+APP_ORIGIN=https://chess.example.com
+NEXTAUTH_URL=https://chess.example.com
+NEXT_PUBLIC_API_URL=https://chess.example.com
+POSTGRES_PASSWORD=<strong-db-password>
+NEXTAUTH_SECRET=<secret-1>
+INTERNAL_SYNC_SECRET=<secret-2>
+```
+
+For a temporary IP-only smoke test before DNS is ready:
+
+```ini
+DOMAIN=:80
+APP_ORIGIN=http://YOUR_SERVER_IP
+NEXTAUTH_URL=http://YOUR_SERVER_IP
+NEXT_PUBLIC_API_URL=http://YOUR_SERVER_IP
+```
+
+### 2. Deploy with one command
+
+```bash
+./scripts/deploy.sh ubuntu@YOUR_SERVER_IP /opt/animal-chess
+```
+
+The script syncs the repo to the VPS, builds the API and web images, starts Postgres/Redis, runs
+Alembic migrations, seeds quests/achievements, then starts API, web, and Caddy.
+
+To inspect the stack on the VPS:
+
+```bash
+cd /opt/animal-chess
+docker compose --env-file .env.production -f docker-compose.prod.yml ps
+docker compose --env-file .env.production -f docker-compose.prod.yml logs -f web api caddy
+```
 
 ---
 

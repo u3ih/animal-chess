@@ -13,6 +13,12 @@ async function main() {
   await app.prepare();
 
   const httpServer = createServer((req, res) => {
+    if (req.url === "/healthz") {
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({ status: "ok" }));
+      return;
+    }
+
     // Lets the Python backend rebuild its lobby cache on startup (open public rooms).
     if (req.url === "/internal/rooms/snapshot") {
       res.setHeader("content-type", "application/json");

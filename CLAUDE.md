@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-pnpm install                 # bootstrap (Node >=20, pnpm@11.7.0)
+pnpm install                 # bootstrap (Node >=26, pnpm@11.7.0)
 cp apps/web/.env.example apps/web/.env.local   # then fill Google OAuth + NextAuth secrets
 
 pnpm dev          # web dev server — runs `tsx server.ts`, NOT `next dev` (see below)
