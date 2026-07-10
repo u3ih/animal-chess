@@ -106,7 +106,9 @@ function roomSnapshot(room: Room): RoomSnapshot {
       avatar,
       ready
     })),
-    state: room.state,
+    // history grows O(moves) and no client reads it in the board path, so trim it off the wire.
+    // The server keeps the full history in `room.state` for its own move validation.
+    state: { ...room.state, history: [] },
     timer: room.timer,
     chat: room.chat
   };

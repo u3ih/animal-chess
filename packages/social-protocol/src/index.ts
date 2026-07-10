@@ -99,6 +99,7 @@ export type RankUpdate = { elo: number; tier: Tier; division: number | null; del
 export type WalletUpdate = { coins: number; xp: number; level: number; leveledUp: boolean };
 export type QuestUpdate = { questId: string; code: string; progress: number; target: number; completed: boolean };
 export type RewardEvent = { source: string; coins: number; xp: number; achievement?: string | null };
+export type PurchaseResult = { cosmeticId: string; coins: number };
 
 // --- Reusable fragments ---
 const USER_FIELDS = "id kind username image isRanked";
@@ -138,6 +139,8 @@ export const ACHIEVEMENTS_QUERY = `query Achievements {
 
 export const DAILY_STATUS_QUERY = `query DailyStatus { dailyStatus { claimable streak nextMultiplier } }`;
 
+export const OWNED_COSMETICS_QUERY = `query OwnedCosmetics { ownedCosmetics }`;
+
 export const LEADERBOARD_QUERY = `query Leaderboard($kind: LeaderboardKind!, $limit: Int!) {
   leaderboard(kind: $kind, limit: $limit) { rank score tier user { ${USER_FIELDS} } }
 }`;
@@ -168,6 +171,9 @@ export const CLAIM_DAILY = `mutation ClaimDaily {
 }`;
 export const CLAIM_QUEST = `mutation ClaimQuest($questId: ID!) {
   claimQuest(questId: $questId) { claimed coins xp leveledUp level }
+}`;
+export const PURCHASE_COSMETIC = `mutation Purchase($cosmeticId: String!) {
+  purchaseCosmetic(cosmeticId: $cosmeticId) { cosmeticId coins }
 }`;
 
 // --- Subscriptions ---

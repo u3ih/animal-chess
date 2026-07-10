@@ -39,6 +39,7 @@ const vi = {
     faceoff: "Đối đầu",
     rules: "Luật chơi",
     toggleSound: "Bật tắt âm thanh",
+    toggleHaptics: "Bật tắt rung",
     signOut: "Đăng xuất",
     exitGuest: "Thoát guest",
     signInGoogle: "Đăng nhập Google",
@@ -265,6 +266,24 @@ const vi = {
   winReasonLong: {
     den: "tiến vào hang đối thủ",
     elimination: "ăn hết quân địch"
+  },
+  shop: {
+    open: "Cửa hàng",
+    title: "Cửa hàng trang phục",
+    choosePiece: "Chọn quân",
+    equip: "Mặc",
+    equipped: "Đang mặc",
+    buy: "Mua · {{price}}",
+    owned: "Đã sở hữu",
+    free: "Miễn phí",
+    notEnough: "Không đủ xu",
+    signInRequired: "Đăng nhập Google để mua trang phục.",
+    costumes: {
+      none: "Không",
+      strawHat: "Nón rơm",
+      goldCrown: "Vương miện vàng",
+      cape: "Áo choàng"
+    }
   },
   pieces: {
     rat: "Chuột",

@@ -1,8 +1,19 @@
 "use client";
 
 import type { PieceKind, Player } from "@animal-chess/game-core";
-import { useEffect, useMemo } from "react";
+import { useFrame } from "@react-three/fiber";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import {
+  COLLAR_TORUS,
+  getBasicMaterial,
+  getCapsuleGeometry,
+  getConeGeometry,
+  getCylinderGeometry,
+  getStandardMaterial,
+  UNIT_BOX,
+  UNIT_SPHERE
+} from "./shared-assets";
 import { type CostumeId, DEFAULT_COSTUME, getCostume } from "./skins";
 
 /** body = main coat, belly = lighter underside/face, dark = markings/limbs. */
@@ -71,19 +82,19 @@ function Ball({
   metal?: number;
 }) {
   return (
-    <mesh castShadow position={p} scale={s}>
-      <sphereGeometry args={[1, 32, 24]} />
-      <meshStandardMaterial color={c} roughness={rough} metalness={metal} />
-    </mesh>
+    <mesh castShadow position={p} scale={s} geometry={UNIT_SPHERE} material={getStandardMaterial(c, rough, metal)} />
   );
 }
 
 function Cyl({ c, p, r, rot = [0, 0, 0], rough = 0.55 }: { c: string; p: Vec3; r: Vec3; rot?: Vec3; rough?: number }) {
   return (
-    <mesh castShadow position={p} rotation={rot}>
-      <cylinderGeometry args={[r[0], r[1], r[2], 20]} />
-      <meshStandardMaterial color={c} roughness={rough} metalness={0.02} />
-    </mesh>
+    <mesh
+      castShadow
+      position={p}
+      rotation={rot}
+      geometry={getCylinderGeometry(r[0], r[1], r[2])}
+      material={getStandardMaterial(c, rough, 0.02)}
+    />
   );
 }
 
@@ -103,10 +114,13 @@ function Capsule({
   rough?: number;
 }) {
   return (
-    <mesh castShadow position={p} rotation={rot}>
-      <capsuleGeometry args={[r, len, 8, 18]} />
-      <meshStandardMaterial color={c} roughness={rough} metalness={0.02} />
-    </mesh>
+    <mesh
+      castShadow
+      position={p}
+      rotation={rot}
+      geometry={getCapsuleGeometry(r, len)}
+      material={getStandardMaterial(c, rough, 0.02)}
+    />
   );
 }
 
@@ -124,10 +138,14 @@ function Box({
   rough?: number;
 }) {
   return (
-    <mesh castShadow position={p} rotation={rot}>
-      <boxGeometry args={size} />
-      <meshStandardMaterial color={c} roughness={rough} metalness={0.02} />
-    </mesh>
+    <mesh
+      castShadow
+      position={p}
+      rotation={rot}
+      scale={size}
+      geometry={UNIT_BOX}
+      material={getStandardMaterial(c, rough, 0.02)}
+    />
   );
 }
 
@@ -149,10 +167,14 @@ function Cone({
   rough?: number;
 }) {
   return (
-    <mesh castShadow position={p} rotation={rot}>
-      <coneGeometry args={[r, h, seg]} />
-      <meshStandardMaterial color={c} roughness={rough} metalness={0.02} />
-    </mesh>
+    <mesh
+      castShadow
+      position={p}
+      rotation={rot}
+      scale={[r, h, r]}
+      geometry={getConeGeometry(seg)}
+      material={getStandardMaterial(c, rough, 0.02)}
+    />
   );
 }
 
@@ -222,14 +244,18 @@ function Eye({ x, y = 0.62, z = 0.26 }: { x: number; y?: number; z?: number }) {
   return (
     <group>
       <Ball c="#fbf7ee" p={[x, y, z]} s={0.05} rough={0.2} />
-      <mesh position={[x, y, z + 0.035]}>
-        <sphereGeometry args={[0.03, 14, 14]} />
-        <meshStandardMaterial color="#120d09" roughness={0.15} />
-      </mesh>
-      <mesh position={[x + 0.012, y + 0.014, z + 0.05]}>
-        <sphereGeometry args={[0.011, 8, 8]} />
-        <meshBasicMaterial color="#ffffff" />
-      </mesh>
+      <mesh
+        position={[x, y, z + 0.035]}
+        scale={0.03}
+        geometry={UNIT_SPHERE}
+        material={getStandardMaterial("#120d09", 0.15, 0.03)}
+      />
+      <mesh
+        position={[x + 0.012, y + 0.014, z + 0.05]}
+        scale={0.011}
+        geometry={UNIT_SPHERE}
+        material={getBasicMaterial("#ffffff")}
+      />
     </group>
   );
 }
@@ -544,10 +570,13 @@ function Collar({ owner }: { owner: Player }) {
   const c = TEAM_SCARF[owner];
   return (
     <group>
-      <mesh castShadow position={[0, 0.46, 0.05]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.21, 0.052, 12, 28]} />
-        <meshStandardMaterial color={c} roughness={0.48} metalness={0.05} />
-      </mesh>
+      <mesh
+        castShadow
+        position={[0, 0.46, 0.05]}
+        rotation={[Math.PI / 2, 0, 0]}
+        geometry={COLLAR_TORUS}
+        material={getStandardMaterial(c, 0.48, 0.05)}
+      />
       {/* knot at the throat */}
       <Ball c={c} p={[0, 0.4, 0.25]} s={0.07} rough={0.45} />
       <Cone c={c} p={[0.04, 0.3, 0.26]} r={0.05} h={0.16} seg={4} rot={[0.4, 0, -0.3]} rough={0.45} />
@@ -556,12 +585,40 @@ function Collar({ owner }: { owner: Player }) {
   );
 }
 
-function RankBadge({ kind, owner, label }: { kind: PieceKind; owner: Player; label: string }) {
+/**
+ * Floating rank/name badge. Stays always-on-top (`depthTest:false`, never clips into neighbors) but
+ * fades out as the camera drops toward a low angle — where the badges would otherwise pile up and
+ * clutter — and back in for top-down views. The selected/hovered piece keeps its badge at full
+ * opacity via `emphasis`, so rank info is always one tap away.
+ */
+function RankBadge({
+  kind,
+  owner,
+  label,
+  emphasis,
+  reduced
+}: {
+  kind: PieceKind;
+  owner: Player;
+  label: string;
+  emphasis?: boolean;
+  reduced?: boolean;
+}) {
+  const material = useRef<THREE.SpriteMaterial>(null);
   const texture = useMemo(() => makeBadgeTexture(RANK[kind], label, owner), [kind, owner, label]);
   useEffect(() => () => texture.dispose(), [texture]);
+  useFrame(({ camera }, delta) => {
+    const m = material.current;
+    if (!m) return;
+    const len = camera.position.length() || 1;
+    // polar angle from the +Y axis: ~0.52rad at the default camera, up to maxPolarAngle 1.2 when low.
+    const polar = Math.acos(THREE.MathUtils.clamp(camera.position.y / len, -1, 1));
+    const target = emphasis ? 1 : 1 - THREE.MathUtils.smoothstep(polar, 0.62, 0.95);
+    m.opacity = reduced ? target : THREE.MathUtils.damp(m.opacity, target, 12, delta);
+  });
   return (
-    <sprite position={[0, 1.22, 0]} scale={[0.62, 0.23, 1]} renderOrder={10}>
-      <spriteMaterial map={texture} transparent depthTest={false} />
+    <sprite position={[0, 1.22, 0]} scale={[0.52, 0.2, 1]} renderOrder={10}>
+      <spriteMaterial ref={material} map={texture} transparent depthTest={false} />
     </sprite>
   );
 }
@@ -584,7 +641,9 @@ export function AnimalModel({
   owner,
   label,
   costumeId = DEFAULT_COSTUME,
-  showBadge = true
+  showBadge = true,
+  badgeEmphasis,
+  reduced
 }: {
   kind: PieceKind;
   owner: Player;
@@ -593,6 +652,9 @@ export function AnimalModel({
   /** Equipped costume id (shop). Defaults to the bare look. */
   costumeId?: CostumeId;
   showBadge?: boolean;
+  /** Keep this piece's badge at full opacity regardless of camera angle (selected/hovered). */
+  badgeEmphasis?: boolean;
+  reduced?: boolean;
 }) {
   return (
     <group>
@@ -602,7 +664,9 @@ export function AnimalModel({
       <AnimalGeometry kind={kind} />
       <Collar owner={owner} />
       <Costume kind={kind} owner={owner} costumeId={costumeId} />
-      {showBadge ? <RankBadge kind={kind} owner={owner} label={label} /> : null}
+      {showBadge ? (
+        <RankBadge kind={kind} owner={owner} label={label} emphasis={badgeEmphasis} reduced={reduced} />
+      ) : null}
     </group>
   );
 }

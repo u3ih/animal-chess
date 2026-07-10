@@ -21,14 +21,18 @@ import {
   Swords,
   Undo2,
   UserRound,
+  Vibrate,
+  VibrateOff,
   Volume2,
   VolumeX,
   X
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useEffect, useMemo, useState } from "react";
+import { BoardCanvas } from "@/components/board-canvas";
+import { CapturedRail } from "@/components/captured-rail";
 import { ChatPanel } from "@/components/chat-panel";
+import { CostumeShop } from "@/components/costume-shop";
 import { FriendListPanel } from "@/components/friend-list-panel";
 import { InGameChat } from "@/components/in-game-chat";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -41,24 +45,16 @@ import { LoginScreen } from "@/components/screens/LoginScreen";
 import { MenuScreen } from "@/components/screens/MenuScreen";
 import { RulesModal } from "@/components/screens/RulesModal";
 import { WinOverlay } from "@/components/screens/WinOverlay";
+import { useCostumes } from "@/hooks/use-costumes";
 import { PIECE_ORDER, useGameController } from "@/hooks/use-game-controller";
 import { STATIC_EXPORT } from "@/lib/flags";
 import styles from "./page.module.scss";
-
-function BoardLoading() {
-  const { t } = useTranslation();
-  return <div className={styles.boardLoading}>{t("game.boardLoading")}</div>;
-}
-
-const GameCanvas = dynamic(() => import("@/components/three/GameCanvas").then((m) => m.GameCanvas), {
-  ssr: false,
-  loading: () => <BoardLoading />
-});
 
 export default function Home() {
   const { t } = useTranslation();
   const { data: session, status: sessionStatus } = useSession();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showShop, setShowShop] = useState(false);
   // Avoid a hydration mismatch: localStorage guest + session both resolve only on the client.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -73,6 +69,9 @@ export default function Home() {
     setAiLevel,
     audioEnabled,
     setAudioEnabled,
+    hapticsEnabled,
+    setHapticsEnabled,
+    hapticsSupported,
     past,
     selectedPieceId,
     identity,
@@ -87,9 +86,8 @@ export default function Home() {
     selectedPiece,
     localColor,
     canAct,
+    captured,
     dpadMoves,
-    moveSecondsLeft,
-    moveSecondsTotal,
     resetGame,
     startGame,
     goMenu,
@@ -98,6 +96,7 @@ export default function Home() {
     selectPiece,
     moveSelectedDir
   } = game;
+  const costumes = useCostumes(identity);
 
   // react-i18next returns a fresh `t` on language change, so this recomputes (and re-bakes badges) per language.
   const pieceLabels = useMemo(
@@ -109,12 +108,6 @@ export default function Home() {
   const youName = identity?.username ?? session?.user?.name ?? t("common.you");
   const foeSlot = online.snapshot?.players.find((slot) => slot.color === foeColor);
   const foeName = mode === "ai" ? t("game.machine") : (foeSlot?.username ?? t("game.opponent"));
-  const clockFor = (color: Player) =>
-    mode === "online" && online.snapshot
-      ? online.timer[color]
-      : liveState.turn === color && liveState.status.state === "playing"
-        ? moveSecondsLeft
-        : moveSecondsTotal;
 
   // Hold the splash until the client resolves identity (NextAuth session + localStorage guest).
   if (!mounted || sessionStatus === "loading") {
@@ -148,8 +141,16 @@ export default function Home() {
           onAiLevelChange={setAiLevel}
           onStart={startGame}
           onShowRules={() => setShowRules(true)}
+          onOpenShop={() => setShowShop(true)}
         />
         {showRules ? <RulesModal onClose={() => setShowRules(false)} /> : null}
+        <CostumeShop
+          open={showShop}
+          onClose={() => setShowShop(false)}
+          costumes={costumes}
+          coins={social.me?.wallet.coins ?? null}
+          isGoogle={identity?.kind === "google"}
+        />
       </>
     );
   }
@@ -190,7 +191,6 @@ export default function Home() {
               side="you"
               color={youColor}
               name={youName}
-              seconds={clockFor(youColor)}
               active={liveState.status.state === "playing" && liveState.turn === youColor}
               avatarUrl={identity?.avatar ?? session?.user?.image}
               icon={<UserRound />}
@@ -199,14 +199,16 @@ export default function Home() {
               side="foe"
               color={foeColor}
               name={foeName}
-              seconds={clockFor(foeColor)}
               active={liveState.status.state === "playing" && liveState.turn === foeColor}
               avatarUrl={foeSlot?.avatar}
               icon={<Headphones />}
             />
-            <GameCanvas
+            <CapturedRail side="you" owner={youColor} captured={captured[youColor]} />
+            <CapturedRail side="foe" owner={foeColor} captured={captured[foeColor]} />
+            <BoardCanvas
               state={liveState}
               pieceLabels={pieceLabels}
+              equippedCostumes={costumes.equipped}
               selectedPieceId={selectedPieceId}
               legalMoves={legalMoves}
               interactive={canAct}
@@ -425,6 +427,13 @@ export default function Home() {
             icon={audioEnabled ? <Volume2 /> : <VolumeX />}
             onClick={() => setAudioEnabled((value) => !value)}
           />
+          {hapticsSupported ? (
+            <IconButton
+              label={t("game.toggleHaptics")}
+              icon={hapticsEnabled ? <Vibrate /> : <VibrateOff />}
+              onClick={() => setHapticsEnabled(!hapticsEnabled)}
+            />
+          ) : null}
           {STATIC_EXPORT ? null : session?.user ? (
             <IconButton label={t("game.signOut")} icon={<LogOut />} onClick={() => signOut()} />
           ) : identity?.kind === "guest" ? (

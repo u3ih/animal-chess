@@ -1,49 +1,43 @@
-/* Captured-pieces tray. Was `.captured-rail` / `.rail-title` in globals.scss. */
+/* Captured-pieces HUD — a compact rank-chip row docked under each PlayerBadge corner (inside .board3d). */
 .capturedRail {
-  min-height: 42px;
-  display: grid;
-  gap: 6px;
-  align-content: start;
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 40%;
+  pointer-events: none;
 }
 
-.railTitle {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+.you {
+  top: 66px;
+  left: 14px;
 }
 
-.capturedRail span {
-  min-height: 30px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border-radius: 8px;
-  padding: 0 9px 0 5px;
-  background: rgba(0, 0, 0, 0.24);
-  color: var(--ink);
-  font-size: 12px;
+.foe {
+  bottom: 66px;
+  right: 14px;
+  justify-content: flex-end;
 }
 
-.capturedRail p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.capturedRail strong {
+.chip {
   width: 22px;
   height: 22px;
   display: grid;
   place-items: center;
   border-radius: 50%;
   font-size: 12px;
-  background: rgba(255, 255, 255, 0.11);
+  font-weight: 700;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
-.capturedRail.red strong {
-  background: rgba(95, 140, 200, 0.34);
+/* red side's trophies are captured blue pieces (cool tint); blue side's are red pieces (warm tint) */
+.red .chip {
+  background: rgba(95, 140, 200, 0.4);
 }
 
-.capturedRail.blue strong {
-  background: rgba(196, 91, 66, 0.34);
+.blue .chip {
+  background: rgba(196, 91, 66, 0.4);
 }

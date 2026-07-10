@@ -46,6 +46,7 @@ export type RoomSnapshot = {
   id: string;
   phase: RoomPhase;
   players: RoomPlayer[];
+  /** `state.history` is truncated to `[]` on the wire — clients must not rely on it. */
   state: GameState;
   timer: Record<Player, number>;
   chat: ChatMessage[];

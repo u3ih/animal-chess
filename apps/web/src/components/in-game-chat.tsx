@@ -43,7 +43,12 @@ export function InGameChat({
 
   if (!open) {
     return (
-      <button type="button" className={styles.ingameChatBubble} aria-label={t("chat.title")} onClick={() => setOpen(true)}>
+      <button
+        type="button"
+        className={styles.ingameChatBubble}
+        aria-label={t("chat.title")}
+        onClick={() => setOpen(true)}
+      >
         <MessageSquareText />
         {unread > 0 ? <span className={styles.ingameChatBadge}>{unread > 9 ? "9+" : unread}</span> : null}
       </button>

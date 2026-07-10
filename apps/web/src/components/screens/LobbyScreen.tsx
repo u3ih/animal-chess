@@ -85,24 +85,23 @@ export function LobbyScreen({
         <h1 className="menu-title">{t("lobby.heading")}</h1>
         <p className="menu-sub">{statusLabel}</p>
 
-        <div className="mt-2 mb-3 grid grid-cols-2 gap-2.5">
-          <Button className="min-h-[46px]" variant="primary" onClick={() => online.createRoom()} icon={<Link2 />}>
+        <div className={styles.lobbyActions}>
+          <Button variant="primary" onClick={() => online.createRoom()} icon={<Link2 />}>
             {t("online.createRoom")}
           </Button>
           {waiting ? (
-            <Button className="min-h-[46px]" onClick={online.cancelMatch} icon={<X />}>
+            <Button onClick={online.cancelMatch} icon={<X />}>
               {t("online.cancelMatch")}
             </Button>
           ) : (
-            <Button className="min-h-[46px]" onClick={online.quickMatch} icon={<Swords />}>
+            <Button onClick={online.quickMatch} icon={<Swords />}>
               {t("online.quickMatch")}
             </Button>
           )}
         </div>
 
-        <form className="mb-[18px] flex gap-2" onSubmit={joinByCode}>
+        <form className={styles.lobbyJoin} onSubmit={joinByCode}>
           <Input
-            className="min-h-[44px] flex-1 rounded-[10px] border border-[var(--panel-border)] bg-white/[0.06] px-3 uppercase text-[var(--ink)]"
             value={roomCode}
             onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
             placeholder={t("online.roomCodePlaceholder")}

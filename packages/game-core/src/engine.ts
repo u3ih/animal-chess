@@ -144,15 +144,19 @@ export function isLegalMove(state: GameState, move: Pick<Move, "pieceId" | "to">
   return legalMovesForPiece(state, move.pieceId).some((candidate) => samePosition(candidate.to, move.to));
 }
 
-export function applyMove(state: GameState, move: Pick<Move, "pieceId" | "to">): GameState {
-  const legalMove = legalMovesForPiece(state, move.pieceId).find((candidate) => samePosition(candidate.to, move.to));
-  if (!legalMove) throw new Error("Illegal move");
-
+/**
+ * Apply a move already known to be legal for `state`, WITHOUT re-deriving legality and WITHOUT
+ * growing `history`. `move` must be a Move produced by `legalMovesForPiece`/`allLegalMoves` for this
+ * exact state (the AI search reuses those results). Search nodes are ephemeral and never read their
+ * own history, so skipping the array copy is a big allocation win multiplied across thousands of
+ * nodes. For all UI/server callers use `applyMove`, which validates and records history.
+ */
+export function applyMoveUnchecked(state: GameState, move: Move): GameState {
   const pieces = state.pieces
-    .filter((piece) => piece.id !== legalMove.capturedPieceId)
-    .map((piece) => (piece.id === legalMove.pieceId ? { ...piece, position: legalMove.to } : piece));
+    .filter((piece) => piece.id !== move.capturedPieceId)
+    .map((piece) => (piece.id === move.pieceId ? { ...piece, position: move.to } : piece));
 
-  const movingPiece = pieces.find((piece) => piece.id === legalMove.pieceId);
+  const movingPiece = pieces.find((piece) => piece.id === move.pieceId);
   const opponent = otherPlayer(state.turn);
   const opponentPieces = pieces.filter((piece) => piece.owner === opponent);
   const enteredOpponentDen = movingPiece ? samePosition(movingPiece.position, DENS[opponent]) : false;
@@ -165,8 +169,15 @@ export function applyMove(state: GameState, move: Pick<Move, "pieceId" | "to">):
   return {
     turn: status.state === "playing" ? opponent : state.turn,
     pieces,
-    history: [...state.history, legalMove],
-    lastMove: legalMove,
+    history: state.history,
+    lastMove: move,
     status
   };
+}
+
+export function applyMove(state: GameState, move: Pick<Move, "pieceId" | "to">): GameState {
+  const legalMove = legalMovesForPiece(state, move.pieceId).find((candidate) => samePosition(candidate.to, move.to));
+  if (!legalMove) throw new Error("Illegal move");
+  const next = applyMoveUnchecked(state, legalMove);
+  return { ...next, history: [...state.history, legalMove] };
 }

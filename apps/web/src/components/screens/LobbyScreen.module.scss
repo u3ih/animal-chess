@@ -9,7 +9,33 @@
   align-items: center;
 }
 
-/* .lobby-actions and .lobby-join now use Tailwind utilities — see LobbyScreen.tsx. */
+.lobbyActions {
+  margin: 8px 0 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.lobbyActions button {
+  min-height: 46px;
+}
+
+.lobbyJoin {
+  margin-bottom: 18px;
+  display: flex;
+  gap: 8px;
+}
+
+.lobbyJoin input {
+  min-height: 44px;
+  flex: 1;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0 12px;
+  text-transform: uppercase;
+  color: var(--ink);
+}
 
 .lobbyBrowser {
   border-top: 1px solid var(--panel-border);

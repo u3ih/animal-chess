@@ -3,7 +3,7 @@
 import type { AiLevel } from "@animal-chess/game-core";
 import { useTranslation } from "@animal-chess/i18n";
 import { Button, cx, Select } from "@animal-chess/ui";
-import { BookOpen, Cpu, Globe2, Play } from "lucide-react";
+import { BookOpen, Cpu, Globe2, Play, ShoppingBag } from "lucide-react";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { STATIC_EXPORT } from "@/lib/flags";
 import styles from "./MenuScreen.module.scss";
@@ -17,7 +17,8 @@ export function MenuScreen({
   onModeChange,
   onAiLevelChange,
   onStart,
-  onShowRules
+  onShowRules,
+  onOpenShop
 }: {
   mode: Mode;
   aiLevel: AiLevel;
@@ -26,6 +27,7 @@ export function MenuScreen({
   onAiLevelChange: (level: AiLevel) => void;
   onStart: () => void;
   onShowRules: () => void;
+  onOpenShop: () => void;
 }) {
   const { t } = useTranslation();
   const levelOptions = [
@@ -85,6 +87,9 @@ export function MenuScreen({
           </Button>
           <Button onClick={onShowRules} icon={<BookOpen />}>
             {t("menu.rules")}
+          </Button>
+          <Button onClick={onOpenShop} icon={<ShoppingBag />}>
+            {t("shop.open")}
           </Button>
         </div>
 

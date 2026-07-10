@@ -148,6 +148,12 @@ class RewardResult:
     multiplier: float | None = None
 
 
+@strawberry.type(description="Result of a cosmetic purchase; `coins` is the wallet balance after.")
+class PurchaseResult:
+    cosmetic_id: str
+    coins: int
+
+
 # --- Subscription payloads ---
 @strawberry.type
 class PresenceEntry:

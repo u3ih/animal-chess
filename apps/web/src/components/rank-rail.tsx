@@ -9,6 +9,7 @@ import {
   type Player
 } from "@animal-chess/game-core";
 import { cx } from "@animal-chess/ui";
+import { memo } from "react";
 import styles from "./rank-rail.module.scss";
 
 // Rank order rat(1) → elephant(8), so the rail reads top-to-bottom like the classic Cờ Thú side panels.
@@ -18,7 +19,7 @@ const PIECE_ORDER = (Object.keys(PIECE_RANK) as PieceKind[]).sort((a, b) => PIEC
  * Vertical rank rail that flanks the board (red left, blue right) — the iconic Cờ Thú side column.
  * Each cell is a selectable piece; defeated pieces dim out so the rail doubles as the captured tray.
  */
-export function RankRail({
+export const RankRail = memo(function RankRail({
   owner,
   state,
   selectedPieceId,
@@ -57,4 +58,4 @@ export function RankRail({
       })}
     </div>
   );
-}
+});

@@ -5,6 +5,7 @@ import { type ThreeEvent, useFrame } from "@react-three/fiber";
 import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { FOUNDATION_Y, getTerrain, surfaceY, tileToWorld } from "./coords";
+import { getRingGeometry, UNIT_BOX } from "./shared-assets";
 import { getLightningTexture, getMossStoneTexture, getStoneTexture, getWaterTexture } from "./textures";
 
 /** Owner tint laid faintly over the stone of trap/den tiles. */
@@ -32,8 +33,12 @@ function TrapLightning() {
       <sprite ref={bolt} position={[0, 0.72, 0]} scale={[0.58, 0.92, 1]} renderOrder={6}>
         <spriteMaterial map={tex} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
       </sprite>
-      <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={4}>
-        <ringGeometry args={[0.16, 0.43, 30]} />
+      <mesh
+        position={[0, 0.05, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        renderOrder={4}
+        geometry={getRingGeometry(0.16, 0.43, 30)}
+      >
         <meshBasicMaterial
           ref={ringMat}
           color="#8fe6ff"
@@ -85,6 +90,8 @@ export function Tile({
       <mesh
         receiveShadow
         position={[0, -TOP_H / 2, 0]}
+        scale={[0.96, TOP_H, 0.96]}
+        geometry={UNIT_BOX}
         onClick={(e: ThreeEvent<MouseEvent>) => {
           e.stopPropagation();
           onCellClick(pos);
@@ -95,7 +102,6 @@ export function Tile({
         }}
         onPointerOut={() => setHovered(false)}
       >
-        <boxGeometry args={[0.96, TOP_H, 0.96]} />
         <meshStandardMaterial
           map={topTexture}
           color={tint}
@@ -109,8 +115,12 @@ export function Tile({
       </mesh>
 
       {/* stone column dropping to the shared foundation — exposes terrace sides & moat banks */}
-      <mesh receiveShadow position={[0, (-TOP_H + columnBottom) / 2, 0]}>
-        <boxGeometry args={[0.96, -TOP_H - columnBottom, 0.96]} />
+      <mesh
+        receiveShadow
+        position={[0, (-TOP_H + columnBottom) / 2, 0]}
+        scale={[0.96, -TOP_H - columnBottom, 0.96]}
+        geometry={UNIT_BOX}
+      >
         <meshStandardMaterial map={getStoneTexture()} color={isWater ? "#5a5444" : "#6f6957"} roughness={1} />
       </mesh>
 

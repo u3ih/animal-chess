@@ -7,7 +7,8 @@ from app.enums import FriendRequestStatus
 from app.graphql import mappers
 from app.graphql import types as t
 from app.graphql.context import db_of, require_google
-from app.services import friend_service, lobby_service, login_service, quest_service, user_service
+from app.services import cosmetic_service, friend_service, lobby_service, login_service, quest_service, user_service
+from app.services.cosmetic_service import CosmeticError
 from app.services.friend_service import FriendError
 from app.services.validation import ValidationError
 
@@ -105,3 +106,12 @@ class Mutation:
         if me is None:
             return False
         return await lobby_service.send_invite(db_of(info), me, int(to_user_id), room_code)
+
+    @strawberry.mutation(description="Buy a costume with coins (google-only, idempotent per costume).")
+    async def purchase_cosmetic(self, info: strawberry.Info, cosmetic_id: str) -> t.PurchaseResult:
+        principal = await require_google(info)
+        try:
+            outcome = await cosmetic_service.purchase(db_of(info), principal.user_id, cosmetic_id)
+        except CosmeticError as exc:
+            raise GraphQLError(str(exc)) from exc
+        return t.PurchaseResult(cosmetic_id=outcome.cosmetic_id, coins=outcome.coins)

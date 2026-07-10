@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyMove, createInitialState, legalMovesForPiece } from "./engine";
+import { allLegalMoves, applyMove, applyMoveUnchecked, createInitialState, legalMovesForPiece } from "./engine";
 import type { GameState } from "./types";
 
 function stateWithPieces(pieces: GameState["pieces"], turn: GameState["turn"] = "red"): GameState {
@@ -52,5 +52,32 @@ describe("game engine", () => {
     const state = stateWithPieces([{ id: "red-rat", owner: "red", kind: "rat", position: { row: 1, col: 3 } }]);
     const next = applyMove(state, { pieceId: "red-rat", to: { row: 0, col: 3 } });
     expect(next.status).toEqual({ state: "won", winner: "red", reason: "den" });
+  });
+
+  it("applyMoveUnchecked matches applyMove (except history) for every opening move", () => {
+    const state = createInitialState();
+    for (const move of allLegalMoves(state)) {
+      const checked = applyMove(state, move);
+      const unchecked = applyMoveUnchecked(state, move);
+      expect(unchecked.pieces).toEqual(checked.pieces);
+      expect(unchecked.turn).toBe(checked.turn);
+      expect(unchecked.status).toEqual(checked.status);
+      expect(unchecked.lastMove).toEqual(checked.lastMove);
+    }
+  });
+
+  it("applyMoveUnchecked resolves a capture identically to applyMove", () => {
+    const state = stateWithPieces([
+      { id: "red-rat", owner: "red", kind: "rat", position: { row: 6, col: 3 } },
+      { id: "blue-elephant", owner: "blue", kind: "elephant", position: { row: 6, col: 4 } }
+    ]);
+    const move = legalMovesForPiece(state, "red-rat").find((candidate) => candidate.to.col === 4);
+    expect(move).toBeDefined();
+    if (!move) return;
+    const checked = applyMove(state, move);
+    const unchecked = applyMoveUnchecked(state, move);
+    expect(unchecked.pieces).toEqual(checked.pieces);
+    expect(unchecked.pieces.some((piece) => piece.id === "blue-elephant")).toBe(false);
+    expect(unchecked.status).toEqual(checked.status);
   });
 });

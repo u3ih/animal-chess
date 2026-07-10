@@ -39,6 +39,7 @@ const en = {
     faceoff: "Faceoff",
     rules: "Rules",
     toggleSound: "Toggle sound",
+    toggleHaptics: "Toggle vibration",
     signOut: "Sign out",
     exitGuest: "Exit guest",
     signInGoogle: "Sign in with Google",
@@ -265,6 +266,24 @@ const en = {
   winReasonLong: {
     den: "reaching the enemy den",
     elimination: "capturing all enemy pieces"
+  },
+  shop: {
+    open: "Shop",
+    title: "Costume shop",
+    choosePiece: "Choose a piece",
+    equip: "Equip",
+    equipped: "Equipped",
+    buy: "Buy · {{price}}",
+    owned: "Owned",
+    free: "Free",
+    notEnough: "Not enough coins",
+    signInRequired: "Sign in with Google to buy costumes.",
+    costumes: {
+      none: "None",
+      strawHat: "Straw hat",
+      goldCrown: "Gold crown",
+      cape: "Cape"
+    }
   },
   pieces: {
     rat: "Rat",

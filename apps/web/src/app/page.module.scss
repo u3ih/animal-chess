@@ -239,15 +239,6 @@
   height: 100% !important;
 }
 
-.boardLoading {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
-  color: var(--muted);
-  font-size: 14px;
-}
-
 /* direction pad: floats at the viewport corner while a piece is selected, so it's
    always thumb-reachable even when the large board scrolls past the fold. */
 .boardDpad {

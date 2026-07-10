@@ -9,6 +9,7 @@ from app.graphql import types as t
 from app.graphql.context import db_of, get_principal, require_google
 from app.services import (
     achievement_service,
+    cosmetic_service,
     friend_service,
     leaderboard_service,
     lobby_service,
@@ -186,3 +187,8 @@ class Query:
                 )
             )
         return out
+
+    @strawberry.field(description="Cosmetic ids the signed-in player owns (paid costumes only).")
+    async def owned_cosmetics(self, info: strawberry.Info) -> list[str]:
+        principal = await require_google(info)
+        return await cosmetic_service.list_owned(db_of(info), principal.user_id)

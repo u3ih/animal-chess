@@ -1,6 +1,5 @@
 "use client";
 
-import type { Player } from "@animal-chess/game-core";
 import type {
   ClientToServerEvents,
   MovePayload,
@@ -10,6 +9,7 @@ import type {
 } from "@animal-chess/net-protocol";
 import { useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
+import { setClock } from "../lib/clock-store";
 import { STATIC_EXPORT } from "../lib/flags";
 import { safeRandomUUID } from "../lib/uuid";
 import type { PlayerIdentity } from "./use-player-identity";
@@ -33,9 +33,8 @@ export type OnlineStatusKey =
 export function useOnlineGame(identity?: PlayerIdentity) {
   const socketRef = useRef<GameSocket | undefined>(undefined);
   const [snapshot, setSnapshot] = useState<RoomSnapshot>();
-  // Clock is kept out of `snapshot` so per-second ticks don't replace the game-state object
-  // (which would re-render the whole board/3D scene every second).
-  const [timer, setTimer] = useState<Record<Player, number>>({ red: 0, blue: 0 });
+  // Clock lives in an external store (not React state) so per-second ticks re-render only the leaf
+  // BadgeClock, never the game tree.
   const [status, setStatus] = useState<OnlineStatusKey>("onlineStatus.disconnected");
   const [fallbackIdentity] = useState(() => ({
     userId: safeRandomUUID(),
@@ -51,10 +50,10 @@ export function useOnlineGame(identity?: PlayerIdentity) {
     nextSocket.on("matchmaking:waiting", () => setStatus("onlineStatus.waiting"));
     nextSocket.on("game:snapshot", (payload: RoomSnapshot) => {
       setSnapshot(payload);
-      setTimer(payload.timer);
+      setClock(payload.timer);
       setStatus(payload.players.length < 2 ? "onlineStatus.waitingPlayer" : "onlineStatus.inMatch");
     });
-    nextSocket.on("game:clock", setTimer);
+    nextSocket.on("game:clock", setClock);
     nextSocket.on("room:error", () => setStatus("onlineStatus.roomError"));
     nextSocket.on("game:rejected", () => setStatus("onlineStatus.moveRejected"));
     socketRef.current = nextSocket;
@@ -65,7 +64,6 @@ export function useOnlineGame(identity?: PlayerIdentity) {
 
   return {
     snapshot,
-    timer,
     status,
     phase: snapshot?.phase,
     localPlayer: snapshot?.players.find((entry) => entry.userId === player.userId),

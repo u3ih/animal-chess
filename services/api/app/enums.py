@@ -55,6 +55,7 @@ class RewardSource(str, Enum):
     QUEST = "quest"
     ACHIEVEMENT = "achievement"
     LEVEL_UP = "level_up"
+    PURCHASE = "purchase"
 
 
 class RoomVisibility(str, Enum):

@@ -122,12 +122,21 @@ type Mutation {
 
   """Invite a friend to your current Node room (by room code)."""
   sendRoomInvite(toUserId: ID!, roomCode: String!): Boolean!
+
+  """Buy a costume with coins (google-only, idempotent per costume)."""
+  purchaseCosmetic(cosmeticId: String!): PurchaseResult!
 }
 
 type PresenceEntry {
   userId: String!
   username: String!
   roomId: String
+}
+
+"""Result of a cosmetic purchase; `coins` is the wallet balance after."""
+type PurchaseResult {
+  cosmeticId: String!
+  coins: Int!
 }
 
 type Query {
@@ -151,6 +160,9 @@ type Query {
 
   """Open public rooms to join."""
   lobby: [LobbyRoom!]!
+
+  """Cosmetic ids the signed-in player owns (paid costumes only)."""
+  ownedCosmetics: [String!]!
 }
 
 """A daily quest. `code` maps to an i18n key on the web."""

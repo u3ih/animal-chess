@@ -44,7 +44,9 @@ function Seat({ player, isHost, isMe, role }: { player?: RoomPlayer; isHost: boo
             {player.ready ? t("room.readyTag") : t("room.notReadyTag")}
           </span>
         )}
-        {!player.connected ? <span className={cx(styles.roomTag, styles.offline)}>{t("room.disconnected")}</span> : null}
+        {!player.connected ? (
+          <span className={cx(styles.roomTag, styles.offline)}>{t("room.disconnected")}</span>
+        ) : null}
       </span>
     </div>
   );

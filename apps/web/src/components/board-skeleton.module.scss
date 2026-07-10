@@ -1,0 +1,67 @@
+.skeleton {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  gap: 14px;
+  background: radial-gradient(120% 120% at 50% 18%, rgba(54, 74, 38, 0.6), rgba(8, 12, 8, 0.82));
+  color: var(--muted);
+}
+
+.overlay {
+  z-index: 4;
+  transition: opacity 320ms ease;
+  pointer-events: none;
+}
+
+.hidden {
+  opacity: 0;
+}
+
+.grid {
+  width: min(62%, 240px);
+  aspect-ratio: 7 / 9;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 14.28% 11.11%;
+  position: relative;
+  overflow: hidden;
+}
+
+.grid::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(226, 187, 97, 0.16), transparent);
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid rgba(226, 187, 97, 0.25);
+  border-top-color: var(--gold);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.label {
+  margin: 0;
+  font-size: 13px;
+}
