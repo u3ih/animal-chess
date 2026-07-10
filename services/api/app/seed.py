@@ -43,6 +43,8 @@ ACHIEVEMENTS = [
     dict(code="ELEPHANT_HUNTER", reward_coins=120, reward_xp=60),
     dict(code="REACH_GOLD", reward_coins=300, reward_xp=150),
     dict(code="REACH_DIAMOND", reward_coins=1000, reward_xp=500, is_secret=True),
+    dict(code="REACH_MASTER", reward_coins=2000, reward_xp=1000, is_secret=True),
+    dict(code="REACH_GRANDMASTER", reward_coins=4000, reward_xp=2000, is_secret=True),
 ]
 
 

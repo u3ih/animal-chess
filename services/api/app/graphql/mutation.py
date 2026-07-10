@@ -7,7 +7,16 @@ from app.enums import FriendRequestStatus
 from app.graphql import mappers
 from app.graphql import types as t
 from app.graphql.context import db_of, require_google
-from app.services import cosmetic_service, friend_service, lobby_service, login_service, quest_service, user_service
+from app.services import (
+    chat_service,
+    cosmetic_service,
+    friend_service,
+    lobby_service,
+    login_service,
+    quest_service,
+    user_service,
+)
+from app.services.chat_service import ChatError
 from app.services.cosmetic_service import CosmeticError
 from app.services.friend_service import FriendError
 from app.services.validation import ValidationError
@@ -98,6 +107,30 @@ class Mutation:
             leveled_up=outcome.leveled_up,
             level=outcome.level,
         )
+
+    @strawberry.mutation(description="Send a private message to a friend (friends-only, ≤500 chars).")
+    async def send_direct_message(
+        self, info: strawberry.Info, to_user_id: strawberry.ID, body: str
+    ) -> t.DirectMessage:
+        principal = await require_google(info)
+        try:
+            message = await chat_service.send_message(db_of(info), principal.user_id, int(to_user_id), body)
+        except ChatError as exc:
+            raise GraphQLError(str(exc)) from exc
+        return t.DirectMessage(
+            id=strawberry.ID(str(message.id)),
+            from_user_id=strawberry.ID(str(message.sender_id)),
+            to_user_id=strawberry.ID(str(message.recipient_id)),
+            body=message.body,
+            created_at=message.created_at,
+            read_at=message.read_at,
+        )
+
+    @strawberry.mutation(description="Mark every message from one friend as read.")
+    async def mark_dm_read(self, info: strawberry.Info, friend_id: strawberry.ID) -> bool:
+        principal = await require_google(info)
+        await chat_service.mark_read(db_of(info), principal.user_id, int(friend_id))
+        return True
 
     @strawberry.mutation(description="Invite a friend to your current Node room (by room code).")
     async def send_room_invite(self, info: strawberry.Info, to_user_id: strawberry.ID, room_code: str) -> bool:

@@ -15,6 +15,22 @@ type DailyStatus {
 """Date with time (isoformat)"""
 scalar DateTime
 
+"""A private message between two friends."""
+type DirectMessage {
+  id: ID!
+  fromUserId: ID!
+  toUserId: ID!
+  body: String!
+  createdAt: DateTime!
+  readAt: DateTime
+}
+
+"""Unread private-message count from one friend."""
+type DmUnread {
+  friendId: ID!
+  count: Int!
+}
+
 type Friend {
   user: User!
   online: Boolean!
@@ -120,6 +136,12 @@ type Mutation {
   """Claim a completed daily quest (idempotent)."""
   claimQuest(questId: ID!): RewardResult!
 
+  """Send a private message to a friend (friends-only, ≤500 chars)."""
+  sendDirectMessage(toUserId: ID!, body: String!): DirectMessage!
+
+  """Mark every message from one friend as read."""
+  markDmRead(friendId: ID!): Boolean!
+
   """Invite a friend to your current Node room (by room code)."""
   sendRoomInvite(toUserId: ID!, roomCode: String!): Boolean!
 
@@ -149,6 +171,12 @@ type Query {
   searchUsers(query: String!, limit: Int! = 10): [User!]!
   friends: [Friend!]!
   friendRequests(incoming: Boolean! = true): [FriendRequest!]!
+
+  """Newest window of a private-chat thread, oldest→newest."""
+  directMessages(friendId: ID!, limit: Int! = 50, beforeId: ID = null): [DirectMessage!]!
+
+  """Unread private-message counts per friend."""
+  dmUnread: [DmUnread!]!
   rankMe: Rating
   leaderboard(kind: LeaderboardKind! = ELO, limit: Int! = 50): [LeaderboardEntry!]!
 
@@ -215,12 +243,13 @@ type Rating {
   leaderboardRank: Int
 }
 
-"""A 'you earned…' toast."""
+"""A 'you earned…' toast. `tier` is set for one-time tier promotions."""
 type RewardEvent {
   source: String!
   coins: Int!
   xp: Int!
   achievement: String
+  tier: Tier
 }
 
 """Result of claiming a daily bonus or quest."""
@@ -270,8 +299,11 @@ type Subscription {
   """Live daily-quest progress."""
   questUpdates: QuestUpdate!
 
-  """'You earned…' reward + achievement toasts."""
+  """'You earned…' reward + achievement + tier-promotion toasts."""
   rewardToasts: RewardEvent!
+
+  """Private messages involving the caller (both directions)."""
+  directMessageEvents: DirectMessage!
 
   """Open public lobby rooms (live)."""
   lobbyUpdates: [LobbyRoom!]!
@@ -284,6 +316,8 @@ enum Tier {
   GOLD
   PLATINUM
   DIAMOND
+  MASTER
+  GRANDMASTER
 }
 
 """A player. Guests expose only a username; rank is google-only."""

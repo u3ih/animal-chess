@@ -188,13 +188,25 @@ const en = {
   friends: {
     title: "Friends",
     invitePlaceholder: "Send a request",
+    searchPlaceholder: "Search players by name",
+    add: "Add {{name}}",
+    noResults: "No players found",
+    requestSent: "Request sent",
     accept: "Accept {{name}}",
     decline: "Decline {{name}}",
     empty: "No friends yet",
     invite: "Invite {{name}}",
     remove: "Remove {{name}}",
+    chat: "Message {{name}}",
     invitedToRoom: "invited you to room {{id}}",
     signInRequired: "Sign in with Google to use your friends list."
+  },
+  dm: {
+    title: "Private chat",
+    placeholder: "Message {{name}}",
+    empty: "No messages yet. Say hi to {{name}}!",
+    send: "Send",
+    close: "Close chat"
   },
   lobby: {
     title: "Lobby",
@@ -204,14 +216,23 @@ const en = {
     empty: "No open rooms right now."
   },
   rank: {
-    tier: "Tier"
+    tier: "Tier",
+    ladderTitle: "Rank ladder",
+    ladderOpen: "View rank ladder",
+    ladderHint: "One-time reward the first time you reach a tier (based on peak ELO).",
+    floor: "From {{elo}} ELO",
+    startTier: "Starting tier",
+    reached: "Reached",
+    current: "Current tier"
   },
   tier: {
     bronze: "Bronze",
     silver: "Silver",
     gold: "Gold",
     platinum: "Platinum",
-    diamond: "Diamond"
+    diamond: "Diamond",
+    master: "Master",
+    grandmaster: "Grandmaster"
   },
   gamification: {
     title: "Rewards",
@@ -221,6 +242,16 @@ const en = {
     claimDaily: "Claim daily",
     claimed: "Claimed today",
     streakDays: "{{count}}-day streak"
+  },
+  toast: {
+    win: "Match won",
+    loss: "Consolation",
+    draw: "Draw",
+    tierUp: "Promoted to {{tier}}!",
+    achievement: "Achievement unlocked",
+    levelUp: "Level up!",
+    quest: "Quest complete",
+    dismiss: "Dismiss"
   },
   quests: {
     empty: "No quests yet.",

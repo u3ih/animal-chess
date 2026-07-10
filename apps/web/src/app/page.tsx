@@ -33,12 +33,15 @@ import { BoardCanvas } from "@/components/board-canvas";
 import { CapturedRail } from "@/components/captured-rail";
 import { ChatPanel } from "@/components/chat-panel";
 import { CostumeShop } from "@/components/costume-shop";
+import { DmChat } from "@/components/dm-chat";
 import { FriendListPanel } from "@/components/friend-list-panel";
 import { InGameChat } from "@/components/in-game-chat";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { PlayerBadge } from "@/components/player-badge";
 import { ProfilePanel } from "@/components/profile-panel";
+import { RankLadder } from "@/components/rank-ladder";
 import { RankRail } from "@/components/rank-rail";
+import { RewardToasts } from "@/components/reward-toasts";
 import { RewardsPanel } from "@/components/rewards-panel";
 import { LobbyScreen } from "@/components/screens/LobbyScreen";
 import { LoginScreen } from "@/components/screens/LoginScreen";
@@ -55,6 +58,7 @@ export default function Home() {
   const { data: session, status: sessionStatus } = useSession();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showShop, setShowShop] = useState(false);
+  const [showLadder, setShowLadder] = useState(false);
   // Avoid a hydration mismatch: localStorage guest + session both resolve only on the client.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -103,6 +107,7 @@ export default function Home() {
     () => Object.fromEntries(PIECE_ORDER.map((kind) => [kind, t(`pieces.${kind}`)])) as Record<PieceKind, string>,
     [t]
   );
+  const activeDmFriend = social.friends.find((f) => f.user.id === social.activeDmFriendId)?.user ?? null;
   const youColor: Player = localColor ?? "red";
   const foeColor: Player = youColor === "red" ? "blue" : "red";
   const youName = identity?.username ?? session?.user?.name ?? t("common.you");
@@ -333,7 +338,12 @@ export default function Home() {
                     onSend={online.sendChat}
                   />
                 ) : null}
-                <ProfilePanel me={social.me} onRename={social.updateUsername} onUsernameChange={setUsername} />
+                <ProfilePanel
+                  me={social.me}
+                  onRename={social.updateUsername}
+                  onUsernameChange={setUsername}
+                  onOpenLadder={() => setShowLadder(true)}
+                />
                 {session?.user ? (
                   <RewardsPanel
                     dailyStatus={social.dailyStatus}
@@ -347,11 +357,15 @@ export default function Home() {
                   friends={social.friends}
                   requests={social.requests}
                   invites={social.invites}
+                  dmUnread={social.dmUnread}
                   roomId={online.snapshot?.id}
                   onRequest={social.sendFriendRequest}
+                  onAddById={social.sendFriendRequestTo}
+                  onSearch={social.searchUsers}
                   onRespond={social.respondFriendRequest}
                   onRemove={social.removeFriend}
                   onInvite={(toUserId) => online.snapshot?.id && social.sendRoomInvite(toUserId, online.snapshot.id)}
+                  onOpenChat={(user) => void social.openDm(user.id)}
                   onAcceptInvite={joinOnlineRoom}
                   onDismissInvite={social.dismissInvite}
                 />
@@ -385,6 +399,16 @@ export default function Home() {
             selfId={identity.userId}
           />
         ) : null}
+        {!STATIC_EXPORT && activeDmFriend ? (
+          <DmChat
+            friend={activeDmFriend}
+            messages={social.dmThreads[activeDmFriend.id] ?? []}
+            meId={social.me?.user.id ?? null}
+            onSend={(body) => activeDmFriend && void social.sendDm(activeDmFriend.id, body)}
+            onClose={social.closeDm}
+          />
+        ) : null}
+        {STATIC_EXPORT ? null : <RewardToasts toasts={social.toasts} onDismiss={social.dismissToast} />}
       </section>
 
       <footer className={cx(styles.topbar, styles.footerBar)}>
@@ -455,6 +479,7 @@ export default function Home() {
         />
       ) : null}
       {showRules ? <RulesModal onClose={() => setShowRules(false)} /> : null}
+      {showLadder ? <RankLadder me={social.me} onClose={() => setShowLadder(false)} /> : null}
     </main>
   );
 }

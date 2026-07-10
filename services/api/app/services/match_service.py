@@ -14,10 +14,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.enums import MatchResult, QuestKind, RewardSource
 from app.events import publish_to_user
-from app.gamification import new_elo, result_reward, tier_for, win_streak_bonus
+from app.gamification import new_elo, result_reward, tier_for, tier_promotions, win_streak_bonus
 from app.models.gamification import WinStreak
 from app.models.match import Match, MatchPlayer
-from app.models.user import User, UserRating
+from app.models.user import User, UserRating, UserWallet
 from app.services import achievement_service, quest_service, reward_service, user_service
 
 
@@ -117,6 +117,7 @@ async def report_result(session: AsyncSession, data: MatchResultInput) -> Report
         rating = await session.get(UserRating, user.id)
         before = elos[user.id]
         after = new_elo(before, elos[opponent.id], _score(result), rating.games)
+        peak_before = rating.peak_elo
         rating.elo = after
         rating.peak_elo = max(rating.peak_elo, after)
         rating.games += 1
@@ -145,6 +146,21 @@ async def report_result(session: AsyncSession, data: MatchResultInput) -> Report
         outcome = await reward_service.grant(
             session, user.id, coins=coins, xp=xp, source=RewardSource(result.value), ref_id=f"match:{data.match_id}"
         )
+
+        # Peak ELO is monotonic, so each tier promotion pays out exactly once per account.
+        for promo_tier, promo_coins, promo_xp in tier_promotions(peak_before, rating.peak_elo):
+            await reward_service.grant(
+                session,
+                user.id,
+                coins=promo_coins,
+                xp=promo_xp,
+                source=RewardSource.TIER_UP,
+                ref_id=f"tier:{promo_tier.value}",
+            )
+            publishes.append(
+                (user.id, "reward", {"source": RewardSource.TIER_UP.value, "coins": promo_coins, "xp": promo_xp,
+                                     "tier": promo_tier.value})
+            )
 
         captured = data.captured_kinds.get(p.color, [])
         await quest_service.bump(session, user.id, QuestKind.PLAY_GAMES)
@@ -183,8 +199,11 @@ async def report_result(session: AsyncSession, data: MatchResultInput) -> Report
                                "games": rating.games, "wins": rating.wins, "losses": rating.losses,
                                "draws": rating.draws, "peakElo": rating.peak_elo}))
         publishes.append((user.id, "reward", {"source": result.value, "coins": outcome.coins, "xp": outcome.xp}))
-        publishes.append((user.id, "wallet", {"coins": outcome.total_coins, "xp": outcome.total_xp,
-                                              "level": outcome.level, "leveledUp": outcome.leveled_up}))
+        # Snapshot the wallet after ALL grants (result + tier promotions + achievements) so the
+        # pushed totals match what a refetch would return.
+        wallet = await session.get(UserWallet, user.id)
+        publishes.append((user.id, "wallet", {"coins": wallet.coins, "xp": wallet.xp,
+                                              "level": wallet.level, "leveledUp": outcome.leveled_up}))
         publishes.extend((user.id, "achievement", {"code": code}) for code in new_codes)
 
     await session.commit()

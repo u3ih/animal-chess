@@ -78,6 +78,22 @@ class FriendRequest:
     created_at: datetime
 
 
+@strawberry.type(description="A private message between two friends.")
+class DirectMessage:
+    id: strawberry.ID
+    from_user_id: strawberry.ID
+    to_user_id: strawberry.ID
+    body: str
+    created_at: datetime
+    read_at: datetime | None = None
+
+
+@strawberry.type(description="Unread private-message count from one friend.")
+class DmUnread:
+    friend_id: strawberry.ID
+    count: int
+
+
 @strawberry.type(description="An open, joinable room registered by the Node game server.")
 class LobbyRoom:
     code: str
@@ -208,12 +224,13 @@ class QuestUpdate:
     completed: bool
 
 
-@strawberry.type(description="A 'you earned…' toast.")
+@strawberry.type(description="A 'you earned…' toast. `tier` is set for one-time tier promotions.")
 class RewardEvent:
     source: str
     coins: int
     xp: int
     achievement: str | None = None
+    tier: Tier | None = None
 
 
 @strawberry.input

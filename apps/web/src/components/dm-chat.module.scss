@@ -1,0 +1,93 @@
+/* Floating private chat — docked bottom-right (in-game chat owns bottom-left). */
+.dmChat {
+  position: fixed;
+  right: 18px;
+  bottom: 80px;
+  z-index: 49;
+  width: min(340px, 92vw);
+  max-height: min(60vh, 460px);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 10px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+
+.dmHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dmHead button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+}
+
+.dmLog {
+  display: grid;
+  gap: 6px;
+  overflow-y: auto;
+  min-height: 120px;
+  align-content: start;
+}
+
+.dmLog p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dmLog article {
+  justify-self: start;
+  max-width: 85%;
+  padding: 6px 10px;
+  border-radius: 12px 12px 12px 4px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.dmLog article.mine {
+  justify-self: end;
+  border-radius: 12px 12px 4px 12px;
+  background: rgba(255, 233, 168, 0.16);
+}
+
+.dmChat form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.dmChat form input {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  padding: 0 10px;
+}
+
+.dmChat form button {
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 720px) {
+  .dmChat {
+    bottom: 76px;
+  }
+}

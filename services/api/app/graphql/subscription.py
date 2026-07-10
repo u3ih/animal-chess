@@ -110,14 +110,28 @@ class Subscription:
                     completed=msg.get("completed", False),
                 )
 
-    @strawberry.subscription(description="'You earned…' reward + achievement toasts.")
+    @strawberry.subscription(description="'You earned…' reward + achievement + tier-promotion toasts.")
     async def reward_toasts(self, info: strawberry.Info) -> AsyncGenerator[t.RewardEvent, None]:
         principal = await require_google(info)
         async for msg in subscribe(user_channel(principal.user_id)):
             if msg.get("type") == "reward":
-                yield t.RewardEvent(source=msg["source"], coins=msg["coins"], xp=msg["xp"])
+                tier = t.Tier(msg["tier"]) if msg.get("tier") else None
+                yield t.RewardEvent(source=msg["source"], coins=msg["coins"], xp=msg["xp"], tier=tier)
             elif msg.get("type") == "achievement":
                 yield t.RewardEvent(source="achievement", coins=0, xp=0, achievement=msg["code"])
+
+    @strawberry.subscription(description="Private messages involving the caller (both directions).")
+    async def direct_message_events(self, info: strawberry.Info) -> AsyncGenerator[t.DirectMessage, None]:
+        principal = await require_google(info)
+        async for msg in subscribe(user_channel(principal.user_id)):
+            if msg.get("type") == "dm":
+                yield t.DirectMessage(
+                    id=strawberry.ID(str(msg["id"])),
+                    from_user_id=strawberry.ID(str(msg["fromUserId"])),
+                    to_user_id=strawberry.ID(str(msg["toUserId"])),
+                    body=msg["body"],
+                    created_at=_parse_dt(msg.get("createdAt")),
+                )
 
     @strawberry.subscription(description="Open public lobby rooms (live).")
     async def lobby_updates(self, info: strawberry.Info) -> AsyncGenerator[list[t.LobbyRoom], None]:

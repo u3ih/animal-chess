@@ -2,6 +2,7 @@
 
 from app.enums import Tier
 from app.gamification import (
+    TIER_PROMOTION_REWARDS,
     daily_multiplier,
     daily_reward,
     expected_score,
@@ -9,6 +10,7 @@ from app.gamification import (
     new_elo,
     result_reward,
     tier_for,
+    tier_promotions,
     win_streak_bonus,
 )
 
@@ -37,10 +39,29 @@ def test_tier_bands():
     assert tier_for(1150)[0] is Tier.SILVER
     assert tier_for(1350)[0] is Tier.GOLD
     assert tier_for(1550)[0] is Tier.PLATINUM
-    assert tier_for(1800) == (Tier.DIAMOND, None)
+    assert tier_for(1800)[0] is Tier.DIAMOND
+    # Master/Grandmaster are apex tiers without divisions.
+    assert tier_for(1950) == (Tier.MASTER, None)
+    assert tier_for(2100) == (Tier.GRANDMASTER, None)
+    assert tier_for(3000) == (Tier.GRANDMASTER, None)
     # Divisions run III (low) -> I (high).
     assert tier_for(1100)[1] == 3
     assert tier_for(1290)[1] == 1
+
+
+def test_tier_promotions():
+    # No rise, or rise inside one band ⇒ nothing.
+    assert tier_promotions(1000, 1000) == []
+    assert tier_promotions(1120, 1050) == []
+    assert tier_promotions(1000, 1099) == []
+    # Crossing one floor pays that tier once.
+    assert tier_promotions(1095, 1112) == [(Tier.SILVER, *TIER_PROMOTION_REWARDS[Tier.SILVER])]
+    # A big jump pays every tier crossed, in order.
+    tiers = [t for t, _, _ in tier_promotions(1000, 2150)]
+    assert tiers == [Tier.SILVER, Tier.GOLD, Tier.PLATINUM, Tier.DIAMOND, Tier.MASTER, Tier.GRANDMASTER]
+    # Rewards escalate monotonically.
+    rewards = [TIER_PROMOTION_REWARDS[t][0] for t in tiers]
+    assert rewards == sorted(rewards)
 
 
 def test_level_curve():

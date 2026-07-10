@@ -3,19 +3,21 @@
 import { useTranslation } from "@animal-chess/i18n";
 import type { Me } from "@animal-chess/social-protocol";
 import { Button, Input, Panel } from "@animal-chess/ui";
-import { Coins, Star, UserCog } from "lucide-react";
+import { Coins, Trophy, UserCog } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { type FormEvent, useEffect, useState } from "react";
-import { TIER_LABEL_KEY } from "@/lib/labels";
+import { TierBadge } from "@/components/tier-badge";
 
 export function ProfilePanel({
   me,
   onRename,
-  onUsernameChange
+  onUsernameChange,
+  onOpenLadder
 }: {
   me: Me | null;
   onRename: (username: string) => Promise<boolean>;
   onUsernameChange?: (username: string) => void;
+  onOpenLadder?: () => void;
 }) {
   const { t } = useTranslation();
   const { data: session } = useSession();
@@ -46,11 +48,7 @@ export function ProfilePanel({
       </form>
       {me ? (
         <div className="profile-stats">
-          <span title={t("rank.tier")}>
-            <Star />
-            {t(TIER_LABEL_KEY[me.rating?.tier ?? "BRONZE"])}
-            {me.rating?.division ? ` ${me.rating.division}` : ""}
-          </span>
+          <TierBadge tier={me.rating?.tier ?? "BRONZE"} division={me.rating?.division} />
           <span title={t("gamification.coins")}>
             <Coins />
             {me.wallet.coins}
@@ -58,6 +56,11 @@ export function ProfilePanel({
           <span title={t("gamification.level")}>
             {t("gamification.levelShort", { level: String(me.wallet.level) })}
           </span>
+          {onOpenLadder ? (
+            <Button icon={<Trophy />} onClick={onOpenLadder}>
+              {t("rank.ladderOpen")}
+            </Button>
+          ) : null}
         </div>
       ) : null}
     </Panel>

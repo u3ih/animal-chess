@@ -30,27 +30,68 @@ def new_elo(rating: int, opponent: int, score: float, games_played: int) -> int:
 
 
 # --- Tiers (derived from ELO) ---
-# (tier, lower_bound). Diamond has no divisions.
+# Master/Grandmaster are apex tiers (no divisions). GM floor matches the 2100 K-factor drop.
 _TIER_BANDS: list[tuple[Tier, int, int]] = [
     (Tier.BRONZE, 0, 1099),
     (Tier.SILVER, 1100, 1299),
     (Tier.GOLD, 1300, 1499),
     (Tier.PLATINUM, 1500, 1699),
-    (Tier.DIAMOND, 1700, 100_000),
+    (Tier.DIAMOND, 1700, 1899),
+    (Tier.MASTER, 1900, 2099),
+    (Tier.GRANDMASTER, 2100, 1_000_000),
 ]
+
+_APEX_TIERS = frozenset({Tier.MASTER, Tier.GRANDMASTER})
+
+TIER_ORDER: list[Tier] = [tier for tier, _, _ in _TIER_BANDS]
+
+# One-time reward the first time peak ELO reaches a tier: (coins, xp), roughly doubling per tier.
+TIER_PROMOTION_REWARDS: dict[Tier, tuple[int, int]] = {
+    Tier.SILVER: (150, 75),
+    Tier.GOLD: (300, 150),
+    Tier.PLATINUM: (600, 300),
+    Tier.DIAMOND: (1200, 600),
+    Tier.MASTER: (2500, 1200),
+    Tier.GRANDMASTER: (5000, 2500),
+}
+
+
+def tier_floor(tier: Tier) -> int:
+    for t, low, _ in _TIER_BANDS:
+        if t is tier:
+            return low
+    return 0
 
 
 def tier_for(elo: int) -> tuple[Tier, int | None]:
-    """Return (tier, division) where division is 3..1 (III lowest) or None for Diamond."""
+    """Return (tier, division) where division is 3..1 (III lowest) or None for apex tiers."""
     for tier, low, high in _TIER_BANDS:
         if low <= elo <= high:
-            if tier is Tier.DIAMOND:
+            if tier in _APEX_TIERS:
                 return tier, None
             span = (high - low + 1) / 3
             offset = elo - low
             division = 3 - min(2, int(offset // span))  # III at the bottom, I at the top
             return tier, division
-    return (Tier.DIAMOND, None) if elo > 1699 else (Tier.BRONZE, 3)
+    return (Tier.GRANDMASTER, None) if elo > 2099 else (Tier.BRONZE, 3)
+
+
+def tier_promotions(peak_before: int, peak_after: int) -> list[tuple[Tier, int, int]]:
+    """Every (tier, coins, xp) newly earned when peak ELO rises past tier floors.
+
+    Peak ELO is monotonic, so each tier is crossed at most once per account —
+    the one-time guarantee needs no extra bookkeeping.
+    """
+    if peak_after <= peak_before:
+        return []
+    before_idx = TIER_ORDER.index(tier_for(peak_before)[0])
+    after_idx = TIER_ORDER.index(tier_for(peak_after)[0])
+    out: list[tuple[Tier, int, int]] = []
+    for tier in TIER_ORDER[before_idx + 1 : after_idx + 1]:
+        coins, xp = TIER_PROMOTION_REWARDS.get(tier, (0, 0))
+        if coins or xp:
+            out.append((tier, coins, xp))
+    return out
 
 
 # --- Level curve (cumulative xp -> level) ---

@@ -1,0 +1,78 @@
+/* Reward toast stack — top-right, above everything but modals. */
+.stack {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 60;
+  display: grid;
+  gap: 8px;
+  width: min(320px, 92vw);
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid rgba(255, 233, 168, 0.32);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  animation: toast-in 220ms ease-out;
+}
+
+.toast > svg {
+  width: 18px;
+  height: 18px;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+
+.label {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.amount svg {
+  width: 13px;
+  height: 13px;
+  color: var(--gold);
+}
+
+.amount em {
+  font-style: normal;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.toast button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+@keyframes toast-in {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

@@ -1,6 +1,7 @@
 """All SQLModel tables. Imported here so Alembic autogenerate sees every table."""
 
 from app.models.achievement import AchievementDefinition, UserAchievement
+from app.models.chat import DirectMessage
 from app.models.cosmetic import UserCosmetic
 from app.models.gamification import DailyLoginLog, LoginStreak, WinStreak
 from app.models.match import Match, MatchPlayer
@@ -11,6 +12,7 @@ from app.models.user import User, UserRating, UserWallet, WalletLedger
 __all__ = [
     "AchievementDefinition",
     "UserAchievement",
+    "DirectMessage",
     "UserCosmetic",
     "DailyLoginLog",
     "LoginStreak",

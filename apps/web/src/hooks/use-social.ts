@@ -5,6 +5,11 @@ import {
   CLAIM_QUEST,
   DAILY_STATUS_QUERY,
   type DailyStatus,
+  type DirectMessage,
+  DM_HISTORY_QUERY,
+  DM_SUB,
+  DM_UNREAD_QUERY,
+  type DmUnread,
   FRIEND_EVENTS_SUB,
   FRIEND_REQUESTS_QUERY,
   FRIENDS_QUERY,
@@ -15,6 +20,7 @@ import {
   LOBBY_QUERY,
   LOBBY_SUB,
   type LobbyRoom,
+  MARK_DM_READ,
   ME_QUERY,
   type Me,
   PRESENCE_SUB,
@@ -31,8 +37,11 @@ import {
   type RewardEvent,
   type RewardResult,
   type RoomInvite,
+  SEARCH_USERS_QUERY,
+  SEND_DM,
   SEND_FRIEND_REQUEST,
   SEND_ROOM_INVITE,
+  type SocialUser,
   UPDATE_USERNAME,
   WALLET_SUB,
   type WalletUpdate
@@ -45,6 +54,7 @@ import type { PlayerIdentity } from "./use-player-identity";
 
 export type {
   DailyStatus,
+  DirectMessage,
   Friend,
   FriendRequest,
   LobbyRoom,
@@ -52,7 +62,8 @@ export type {
   PresenceEntry,
   Quest,
   RewardEvent,
-  RoomInvite
+  RoomInvite,
+  SocialUser
 } from "@animal-chess/social-protocol";
 
 const MAX_TOASTS = 4;
@@ -68,9 +79,25 @@ export function useSocial(identity?: PlayerIdentity) {
   const [quests, setQuests] = useState<Quest[]>([]);
   const [dailyStatus, setDailyStatus] = useState<DailyStatus | null>(null);
   const [toasts, setToasts] = useState<RewardEvent[]>([]);
+  const [dmThreads, setDmThreads] = useState<Record<string, DirectMessage[]>>({});
+  const [dmUnread, setDmUnread] = useState<Record<string, number>>({});
+  const [activeDmFriendId, setActiveDmFriendId] = useState<string | null>(null);
   const clientRef = useRef<WsClient | undefined>(undefined);
+  // Subscription handlers outlive renders; refs let them see the current profile + open thread.
+  const meIdRef = useRef<string | null>(null);
+  const activeDmRef = useRef<string | null>(null);
+  meIdRef.current = me?.user.id ?? null;
+  activeDmRef.current = activeDmFriendId;
 
   const isGoogle = identity?.kind === "google";
+
+  const appendDm = useCallback((friendId: string, message: DirectMessage) => {
+    setDmThreads((cur) => {
+      const thread = cur[friendId] ?? [];
+      if (thread.some((m) => m.id === message.id)) return cur;
+      return { ...cur, [friendId]: [...thread, message] };
+    });
+  }, []);
 
   const refreshFriends = useCallback(async () => {
     if (!isGoogle) return;
@@ -111,13 +138,24 @@ export function useSocial(identity?: PlayerIdentity) {
     }
   }, [identity]);
 
+  const refreshDmUnread = useCallback(async () => {
+    if (!isGoogle) return;
+    try {
+      const { dmUnread: rows } = await gqlRequest<{ dmUnread: DmUnread[] }>(DM_UNREAD_QUERY, {}, identity);
+      setDmUnread(Object.fromEntries(rows.map((r) => [r.friendId, r.count])));
+    } catch {
+      /* ignore */
+    }
+  }, [identity, isGoogle]);
+
   // Initial fetches.
   useEffect(() => {
     if (STATIC_EXPORT || !identity) return;
     void refreshLobby();
     void refreshFriends();
     void refreshProfile();
-  }, [identity, refreshLobby, refreshFriends, refreshProfile]);
+    void refreshDmUnread();
+  }, [identity, refreshLobby, refreshFriends, refreshProfile, refreshDmUnread]);
 
   // Live subscriptions.
   useEffect(() => {
@@ -187,6 +225,18 @@ export function useSocial(identity?: PlayerIdentity) {
         sub<{ rewardToasts: RewardEvent }>(client, REWARD_SUB, (d) =>
           setToasts((cur) => [...cur, d.rewardToasts].slice(-MAX_TOASTS))
         );
+        sub<{ directMessageEvents: DirectMessage }>(client, DM_SUB, (d) => {
+          const message = d.directMessageEvents;
+          const myId = meIdRef.current;
+          const friendId = message.fromUserId === myId ? message.toUserId : message.fromUserId;
+          appendDm(friendId, message);
+          if (message.fromUserId === myId) return; // own echo (multi-tab)
+          if (activeDmRef.current === friendId) {
+            void gqlRequest(MARK_DM_READ, { friendId }, identity).catch(() => {});
+          } else {
+            setDmUnread((cur) => ({ ...cur, [friendId]: (cur[friendId] ?? 0) + 1 }));
+          }
+        });
       }
     })();
 
@@ -196,7 +246,7 @@ export function useSocial(identity?: PlayerIdentity) {
       void clientRef.current?.dispose();
       clientRef.current = undefined;
     };
-  }, [identity, isGoogle, refreshFriends]);
+  }, [identity, isGoogle, refreshFriends, appendDm]);
 
   const sendFriendRequest = useCallback(
     async (username: string) => {
@@ -281,6 +331,74 @@ export function useSocial(identity?: PlayerIdentity) {
     [identity, refreshProfile]
   );
 
+  const searchUsers = useCallback(
+    async (query: string): Promise<SocialUser[]> => {
+      if (!isGoogle || query.trim().length < 2) return [];
+      try {
+        const { searchUsers: users } = await gqlRequest<{ searchUsers: SocialUser[] }>(
+          SEARCH_USERS_QUERY,
+          { query: query.trim() },
+          identity
+        );
+        return users;
+      } catch {
+        return [];
+      }
+    },
+    [identity, isGoogle]
+  );
+
+  const sendFriendRequestTo = useCallback(
+    async (userId: string) => {
+      try {
+        await gqlRequest(SEND_FRIEND_REQUEST, { toUserId: userId }, identity);
+        await refreshFriends();
+      } catch {
+        /* ignore */
+      }
+    },
+    [identity, refreshFriends]
+  );
+
+  const openDm = useCallback(
+    async (friendId: string) => {
+      setActiveDmFriendId(friendId);
+      setDmUnread((cur) => ({ ...cur, [friendId]: 0 }));
+      try {
+        const { directMessages } = await gqlRequest<{ directMessages: DirectMessage[] }>(
+          DM_HISTORY_QUERY,
+          { friendId, limit: 50 },
+          identity
+        );
+        setDmThreads((cur) => ({ ...cur, [friendId]: directMessages }));
+        await gqlRequest(MARK_DM_READ, { friendId }, identity);
+      } catch {
+        /* ignore */
+      }
+    },
+    [identity]
+  );
+
+  const closeDm = useCallback(() => setActiveDmFriendId(null), []);
+
+  const sendDm = useCallback(
+    async (friendId: string, body: string) => {
+      const text = body.trim();
+      if (!text) return;
+      try {
+        const { sendDirectMessage } = await gqlRequest<{ sendDirectMessage: DirectMessage }>(
+          SEND_DM,
+          { toUserId: friendId, body: text },
+          identity
+        );
+        appendDm(friendId, sendDirectMessage);
+      } catch {
+        /* ignore */
+      }
+    },
+    [identity, appendDm]
+  );
+
   const dismissInvite = useCallback((index: number) => {
     setInvites((cur) => cur.filter((_, i) => i !== index));
   }, []);
@@ -299,10 +417,18 @@ export function useSocial(identity?: PlayerIdentity) {
     quests,
     dailyStatus,
     toasts,
+    dmThreads,
+    dmUnread,
+    activeDmFriendId,
     sendFriendRequest,
+    sendFriendRequestTo,
+    searchUsers,
     respondFriendRequest,
     removeFriend,
     sendRoomInvite,
+    openDm,
+    closeDm,
+    sendDm,
     claimDaily,
     claimQuest,
     updateUsername,

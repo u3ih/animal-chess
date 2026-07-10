@@ -188,13 +188,25 @@ const vi = {
   friends: {
     title: "Bạn bè",
     invitePlaceholder: "Gửi lời mời",
+    searchPlaceholder: "Tìm người chơi theo tên",
+    add: "Kết bạn {{name}}",
+    noResults: "Không tìm thấy người chơi nào",
+    requestSent: "Đã gửi lời mời",
     accept: "Chấp nhận {{name}}",
     decline: "Từ chối {{name}}",
     empty: "Chưa có bạn bè",
     invite: "Mời {{name}}",
     remove: "Xóa {{name}}",
+    chat: "Nhắn tin với {{name}}",
     invitedToRoom: "mời vào phòng {{id}}",
     signInRequired: "Đăng nhập Google để dùng danh sách bạn bè."
+  },
+  dm: {
+    title: "Nhắn riêng",
+    placeholder: "Nhắn cho {{name}}",
+    empty: "Chưa có tin nhắn nào. Chào {{name}} một câu nhé!",
+    send: "Gửi",
+    close: "Đóng hộp thoại"
   },
   lobby: {
     title: "Sảnh chờ",
@@ -204,14 +216,23 @@ const vi = {
     empty: "Chưa có phòng nào đang mở."
   },
   rank: {
-    tier: "Bậc"
+    tier: "Bậc",
+    ladderTitle: "Thang hạng",
+    ladderOpen: "Xem thang hạng",
+    ladderHint: "Phần thưởng nhận một lần khi lần đầu đạt hạng (tính theo ELO đỉnh).",
+    floor: "Từ {{elo}} ELO",
+    startTier: "Hạng khởi đầu",
+    reached: "Đã đạt",
+    current: "Hạng hiện tại"
   },
   tier: {
     bronze: "Đồng",
     silver: "Bạc",
     gold: "Vàng",
     platinum: "Bạch kim",
-    diamond: "Kim cương"
+    diamond: "Kim cương",
+    master: "Cao thủ",
+    grandmaster: "Đại cao thủ"
   },
   gamification: {
     title: "Phần thưởng",
@@ -221,6 +242,16 @@ const vi = {
     claimDaily: "Nhận thưởng ngày",
     claimed: "Đã nhận hôm nay",
     streakDays: "Chuỗi {{count}} ngày"
+  },
+  toast: {
+    win: "Thắng trận",
+    loss: "Thưởng an ủi",
+    draw: "Hòa trận",
+    tierUp: "Thăng hạng {{tier}}!",
+    achievement: "Mở khóa thành tựu",
+    levelUp: "Lên cấp!",
+    quest: "Hoàn thành nhiệm vụ",
+    dismiss: "Ẩn thông báo"
   },
   quests: {
     empty: "Chưa có nhiệm vụ.",

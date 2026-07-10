@@ -6,5 +6,7 @@ export const TIER_LABEL_KEY = {
   SILVER: "tier.silver",
   GOLD: "tier.gold",
   PLATINUM: "tier.platinum",
-  DIAMOND: "tier.diamond"
+  DIAMOND: "tier.diamond",
+  MASTER: "tier.master",
+  GRANDMASTER: "tier.grandmaster"
 } as const satisfies Record<Tier, string>;

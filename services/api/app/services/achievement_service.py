@@ -4,11 +4,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.enums import RewardSource, Tier
-from app.gamification import tier_for
+from app.gamification import TIER_ORDER, tier_for
 from app.models.achievement import AchievementDefinition, UserAchievement
 from app.services import reward_service
 
-_TIER_ORDER = [Tier.BRONZE, Tier.SILVER, Tier.GOLD, Tier.PLATINUM, Tier.DIAMOND]
+_TIER_ACHIEVEMENTS = [
+    (Tier.GOLD, "REACH_GOLD"),
+    (Tier.DIAMOND, "REACH_DIAMOND"),
+    (Tier.MASTER, "REACH_MASTER"),
+    (Tier.GRANDMASTER, "REACH_GRANDMASTER"),
+]
 
 
 async def _def_by_code(session: AsyncSession, code: str) -> AchievementDefinition | None:
@@ -59,10 +64,8 @@ async def evaluate_for_match(
     if "elephant" in captured_kinds:
         candidates.append("ELEPHANT_HUNTER")
     tier, _ = tier_for(elo_after)
-    if _TIER_ORDER.index(tier) >= _TIER_ORDER.index(Tier.GOLD):
-        candidates.append("REACH_GOLD")
-    if _TIER_ORDER.index(tier) >= _TIER_ORDER.index(Tier.DIAMOND):
-        candidates.append("REACH_DIAMOND")
+    tier_idx = TIER_ORDER.index(tier)
+    candidates.extend(code for t, code in _TIER_ACHIEVEMENTS if tier_idx >= TIER_ORDER.index(t))
 
     unlocked: list[str] = []
     for code in candidates:

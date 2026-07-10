@@ -56,6 +56,7 @@ class RewardSource(str, Enum):
     ACHIEVEMENT = "achievement"
     LEVEL_UP = "level_up"
     PURCHASE = "purchase"
+    TIER_UP = "tier_up"
 
 
 class RoomVisibility(str, Enum):
@@ -75,3 +76,5 @@ class Tier(str, Enum):
     GOLD = "gold"
     PLATINUM = "platinum"
     DIAMOND = "diamond"
+    MASTER = "master"
+    GRANDMASTER = "grandmaster"

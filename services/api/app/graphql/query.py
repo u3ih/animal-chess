@@ -9,6 +9,7 @@ from app.graphql import types as t
 from app.graphql.context import db_of, get_principal, require_google
 from app.services import (
     achievement_service,
+    chat_service,
     cosmetic_service,
     friend_service,
     leaderboard_service,
@@ -19,6 +20,17 @@ from app.services import (
     quest_service,
     user_service,
 )
+
+
+def _dm_gql(m) -> t.DirectMessage:
+    return t.DirectMessage(
+        id=strawberry.ID(str(m.id)),
+        from_user_id=strawberry.ID(str(m.sender_id)),
+        to_user_id=strawberry.ID(str(m.recipient_id)),
+        body=m.body,
+        created_at=m.created_at,
+        read_at=m.read_at,
+    )
 
 
 @strawberry.type
@@ -84,6 +96,26 @@ class Query:
                     )
                 )
         return out
+
+    @strawberry.field(description="Newest window of a private-chat thread, oldest→newest.")
+    async def direct_messages(
+        self, info: strawberry.Info, friend_id: strawberry.ID, limit: int = 50, before_id: strawberry.ID | None = None
+    ) -> list[t.DirectMessage]:
+        principal = await require_google(info)
+        rows = await chat_service.list_messages(
+            db_of(info),
+            principal.user_id,
+            int(friend_id),
+            limit=limit,
+            before_id=int(before_id) if before_id else None,
+        )
+        return [_dm_gql(m) for m in rows]
+
+    @strawberry.field(description="Unread private-message counts per friend.")
+    async def dm_unread(self, info: strawberry.Info) -> list[t.DmUnread]:
+        principal = await require_google(info)
+        counts = await chat_service.unread_counts(db_of(info), principal.user_id)
+        return [t.DmUnread(friend_id=strawberry.ID(str(fid)), count=n) for fid, n in counts.items()]
 
     @strawberry.field
     async def rank_me(self, info: strawberry.Info) -> t.Rating | None:

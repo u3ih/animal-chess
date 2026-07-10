@@ -50,6 +50,65 @@
   gap: 8px;
 }
 
+/* Username search results — same chip look as the friend list. */
+.searchResults {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.searchResults p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.searchResults span {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.searchResults button {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.searchResults svg {
+  width: 14px;
+}
+
+.chatButton {
+  position: relative;
+  display: inline-flex;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.unreadBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--danger);
+  color: #1a0d08;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+}
+
 .friendRequests button {
   justify-content: flex-start;
 }
