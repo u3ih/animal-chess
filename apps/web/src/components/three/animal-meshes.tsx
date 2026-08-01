@@ -4,9 +4,10 @@ import type { PieceKind, Player } from "@animal-chess/game-core";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { PIECE_PALETTE } from "@/lib/piece-palette";
 import {
-  COLLAR_TORUS,
   getBasicMaterial,
+  getCollarGeometry,
   getCapsuleGeometry,
   getConeGeometry,
   getCylinderGeometry,
@@ -16,17 +17,8 @@ import {
 } from "./shared-assets";
 import { type CostumeId, DEFAULT_COSTUME, getCostume } from "./skins";
 
-/** body = main coat, belly = lighter underside/face, dark = markings/limbs. */
-const PALETTE: Record<PieceKind, { body: string; belly: string; dark: string }> = {
-  rat: { body: "#9b9289", belly: "#d8c4b6", dark: "#6f655d" },
-  cat: { body: "#e0a85c", belly: "#f7dcab", dark: "#a9762f" },
-  dog: { body: "#a87145", belly: "#e0bd92", dark: "#6f4626" },
-  wolf: { body: "#737d8a", belly: "#c4ccd6", dark: "#454d58" },
-  leopard: { body: "#d2a64c", belly: "#f3dd95", dark: "#3c2a14" },
-  tiger: { body: "#e08234", belly: "#ffd79a", dark: "#34200f" },
-  lion: { body: "#d4a047", belly: "#f1d28c", dark: "#7d5324" },
-  elephant: { body: "#9aa1a6", belly: "#c6ccd0", dark: "#6c7378" }
-};
+/** body = main coat, belly = lighter underside/face, dark = markings/limbs — shared with the 2D avatars. */
+const PALETTE = PIECE_PALETTE;
 
 const OWNER_COLOR: Record<Player, string> = { red: "#c95c44", blue: "#5f8cc8" };
 /** Vivid team tones for the base disc + neck scarf so each side reads at a glance. */
@@ -528,13 +520,10 @@ function makeBadgeTexture(rank: number, label: string, owner: Player): THREE.Can
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2d context unavailable");
   const color = OWNER_COLOR[owner];
-  // pill background
+  // pill background — borderless; the team read comes from the rank chip and the piece's scarf
   ctx.fillStyle = "rgba(10, 12, 10, 0.82)";
   roundRect(ctx, 6, 6, 244, 84, 26);
   ctx.fill();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 7;
-  ctx.stroke();
   // rank chip
   ctx.fillStyle = color;
   ctx.beginPath();
@@ -565,22 +554,39 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath();
 }
 
-/** Team-colored neck scarf — worn by every animal so red/blue reads instantly on the board. */
-function Collar({ owner }: { owner: Player }) {
+/**
+ * Team-colored scarf — worn by every animal so red/blue reads instantly on the board. One fixed
+ * torus can't fit eight very differently sized bodies (it swallowed the elephant and sat on top of
+ * the rat), so each kind carries its own band: `y` = shoulder height, `rx`/`rz` = the ring radii,
+ * sized to just clear that body's silhouette at that height. Lion wears it low, under the mane.
+ */
+const COLLAR: Record<PieceKind, { y: number; r: number }> = {
+  rat: { y: 0.44, r: 0.26 },
+  cat: { y: 0.5, r: 0.3 },
+  dog: { y: 0.52, r: 0.32 },
+  wolf: { y: 0.55, r: 0.33 },
+  leopard: { y: 0.54, r: 0.33 },
+  tiger: { y: 0.56, r: 0.35 },
+  lion: { y: 0.5, r: 0.36 },
+  elephant: { y: 0.64, r: 0.34 }
+};
+
+function Collar({ kind, owner }: { kind: PieceKind; owner: Player }) {
   const c = TEAM_SCARF[owner];
+  const { y, r } = COLLAR[kind];
   return (
     <group>
       <mesh
         castShadow
-        position={[0, 0.46, 0.05]}
+        position={[0, y, -0.02]}
         rotation={[Math.PI / 2, 0, 0]}
-        geometry={COLLAR_TORUS}
+        geometry={getCollarGeometry(r)}
         material={getStandardMaterial(c, 0.48, 0.05)}
       />
-      {/* knot at the throat */}
-      <Ball c={c} p={[0, 0.4, 0.25]} s={0.07} rough={0.45} />
-      <Cone c={c} p={[0.04, 0.3, 0.26]} r={0.05} h={0.16} seg={4} rot={[0.4, 0, -0.3]} rough={0.45} />
-      <Cone c={c} p={[-0.04, 0.3, 0.26]} r={0.05} h={0.16} seg={4} rot={[0.4, 0, 0.3]} rough={0.45} />
+      {/* knot at the throat, riding the front of the band */}
+      <Ball c={c} p={[0, y - 0.03, r - 0.06]} s={0.055} rough={0.45} />
+      <Cone c={c} p={[0.035, y - 0.11, r - 0.05]} r={0.04} h={0.14} seg={4} rot={[0.4, 0, -0.3]} rough={0.45} />
+      <Cone c={c} p={[-0.035, y - 0.11, r - 0.05]} r={0.04} h={0.14} seg={4} rot={[0.4, 0, 0.3]} rough={0.45} />
     </group>
   );
 }
@@ -662,7 +668,7 @@ export function AnimalModel({
       <Cyl c={TEAM_BASE[owner]} p={[0, -0.06, 0]} r={[0.36, 0.4, 0.12]} rough={0.38} />
       <Cyl c="#1d241b" p={[0, -0.13, 0]} r={[0.4, 0.42, 0.05]} />
       <AnimalGeometry kind={kind} />
-      <Collar owner={owner} />
+      <Collar kind={kind} owner={owner} />
       <Costume kind={kind} owner={owner} costumeId={costumeId} />
       {showBadge ? (
         <RankBadge kind={kind} owner={owner} label={label} emphasis={badgeEmphasis} reduced={reduced} />

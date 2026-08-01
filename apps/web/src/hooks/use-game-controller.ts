@@ -21,16 +21,13 @@ import { useHaptics } from "@/hooks/use-haptics";
 import { useOnlineGame } from "@/hooks/use-online-game";
 import { usePlayerIdentity } from "@/hooks/use-player-identity";
 import { useSocial } from "@/hooks/use-social";
-import { setClock } from "@/lib/clock-store";
+import { MOVE_SECONDS, setClock } from "@/lib/clock-store";
 import { STATIC_EXPORT } from "@/lib/flags";
 import { withViewTransition } from "@/lib/view-transition";
 
 export type Mode = "ai" | "online";
 
 export const PIECE_ORDER = Object.keys(PIECE_RANK) as PieceKind[];
-
-/** Seconds allowed per move (mirrors the server's MOVE_SECONDS). */
-export const MOVE_SECONDS = 90;
 
 export type Dir = "up" | "down" | "left" | "right";
 

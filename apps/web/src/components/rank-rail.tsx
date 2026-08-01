@@ -10,6 +10,7 @@ import {
 } from "@animal-chess/game-core";
 import { cx } from "@animal-chess/ui";
 import { memo } from "react";
+import { PieceAvatar } from "./piece-avatar";
 import styles from "./rank-rail.module.scss";
 
 // Rank order rat(1) → elephant(8), so the rail reads top-to-bottom like the classic Cờ Thú side panels.
@@ -50,7 +51,10 @@ export const RankRail = memo(function RankRail({
             onClick={() => piece && onSelect(piece)}
             title={pieceLabels[kind]}
           >
-            <span className={styles.rankNum}>{PIECE_RANK[kind]}</span>
+            <span className={styles.rankAvatar}>
+              <PieceAvatar kind={kind} />
+              <b className={styles.rankNum}>{PIECE_RANK[kind]}</b>
+            </span>
             <span className={styles.rankName}>{pieceLabels[kind]}</span>
             {piece && canSelect && moves.length ? <em className={styles.rankMoves}>{moves.length}</em> : null}
           </button>

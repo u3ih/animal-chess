@@ -3,7 +3,11 @@ import type { Player } from "@animal-chess/game-core";
 /** Per-player seconds remaining on the current move. */
 export type ClockSnapshot = Record<Player, number>;
 
-const INITIAL: ClockSnapshot = { red: 90, blue: 90 };
+/** Seconds allowed per move (mirrors the server's MOVE_SECONDS). Lives here so leaf clock UI can
+ * derive a "fraction remaining" without importing the game controller. */
+export const MOVE_SECONDS = 90;
+
+const INITIAL: ClockSnapshot = { red: MOVE_SECONDS, blue: MOVE_SECONDS };
 
 /**
  * A tiny external store for the per-move clock, kept out of React state so ticking it once a second

@@ -3,7 +3,7 @@
   align-self: center;
   display: grid;
   gap: 6px;
-  width: 50px;
+  width: 54px;
   padding: 8px 6px;
   border-radius: 14px;
   background: linear-gradient(180deg, rgba(64, 45, 26, 0.92), rgba(38, 26, 15, 0.94));
@@ -24,16 +24,36 @@
   background: rgba(255, 255, 255, 0.045);
 }
 
-.rankNum {
-  width: 28px;
-  height: 28px;
+/* Team-tinted disc holding the animal portrait; the rank number rides along as a small chip. */
+.rankAvatar {
+  position: relative;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  font-size: 12px;
-  font-weight: 800;
-  color: #fff7e6;
   border: 2px solid rgba(255, 255, 255, 0.28);
+}
+
+.rankAvatar svg {
+  display: block;
+}
+
+.rankNum {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 2px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  font-size: 9px;
+  font-weight: 800;
+  color: #1c2114;
+  background: #f2e2b6;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
 }
 
 /* names hidden — board pieces already carry labels; rail stays a thin rank/captured strip */
@@ -41,11 +61,11 @@
   display: none;
 }
 
-.rankRail.red .rankNum {
+.rankRail.red .rankAvatar {
   background: radial-gradient(circle at 35% 30%, #db7a5f, #a8402c);
 }
 
-.rankRail.blue .rankNum {
+.rankRail.blue .rankAvatar {
   background: radial-gradient(circle at 35% 30%, #7aa7e0, #3f6bb0);
 }
 

@@ -295,11 +295,7 @@ export function MoveFx({ move }: { move: Move }) {
 
   return (
     <>
-      {fromWater ? (
-        <Splash pos={move.from} delay={0} />
-      ) : (
-        <DustPuff pos={move.from} delay={0} strength={strength} />
-      )}
+      {fromWater ? <Splash pos={move.from} delay={0} /> : <DustPuff pos={move.from} delay={0} strength={strength} />}
       {toWater ? (
         <Splash pos={move.to} delay={land} strength={strength} />
       ) : (
