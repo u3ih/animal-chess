@@ -4,12 +4,13 @@ import { DENS, type Move, type Position } from "@animal-chess/game-core";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import type * as THREE from "three";
-import { ALL_CELLS, BOARD_H, BOARD_W, surfaceY, tileToWorld } from "./coords";
+import { ALL_CELLS, BOARD_H, BOARD_W, pieceSurfaceY, tileToWorld } from "./coords";
 import { DenStructure } from "./DenStructure";
 import { RuinWall } from "./RuinWall";
 import { getBasicMaterial, getRingGeometry } from "./shared-assets";
 import { Tile } from "./Tile";
 import { getStoneTexture, getWaterTexture } from "./textures";
+import { WaterPosts } from "./WaterPosts";
 
 function MoveHint({ pos, capture, pulse }: { pos: Position; capture: boolean; pulse: React.MutableRefObject<number> }) {
   const ref = useRef<THREE.Mesh>(null);
@@ -23,7 +24,7 @@ function MoveHint({ pos, capture, pulse }: { pos: Position; capture: boolean; pu
   return (
     <mesh
       ref={ref}
-      position={[wx, surfaceY(pos) + 0.06, wz]}
+      position={[wx, pieceSurfaceY(pos) + 0.06, wz]}
       rotation={[-Math.PI / 2, 0, 0]}
       renderOrder={5}
       geometry={capture ? getRingGeometry(0.3, 0.46, 32) : getRingGeometry(0.12, 0.22, 32)}
@@ -36,7 +37,7 @@ function LastMark({ pos, kind }: { pos: Position; kind: "from" | "to" }) {
   const [wx, , wz] = tileToWorld(pos);
   return (
     <mesh
-      position={[wx, surfaceY(pos) + 0.04, wz]}
+      position={[wx, pieceSurfaceY(pos) + 0.04, wz]}
       rotation={[-Math.PI / 2, 0, 0]}
       geometry={getRingGeometry(0.4, 0.46, 4)}
       material={kind === "to" ? getBasicMaterial("#7fa05a", 0.85, false) : getBasicMaterial("#cbd5c0", 0.5, false)}
@@ -77,6 +78,8 @@ export function Board3D({
       {ALL_CELLS.map((pos) => (
         <Tile key={`${pos.row}-${pos.col}`} pos={pos} interactive={interactive} onCellClick={onCellClick} />
       ))}
+
+      <WaterPosts />
 
       <DenStructure pos={DENS.red} owner="red" onCellClick={onCellClick} />
       <DenStructure pos={DENS.blue} owner="blue" onCellClick={onCellClick} />
