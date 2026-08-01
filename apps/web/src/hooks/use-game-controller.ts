@@ -189,7 +189,6 @@ export function useGameController() {
   // Haptics mirror the sound cues. Watching `liveState` covers AI mode, your own online move, and the
   // opponent's move uniformly. Only buzz when history grows (guards undo/reset, which shrink it).
   const prevHistoryLen = useRef(liveState.history.length);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: hapticsRef is a stable ref; liveState covers lastMove.
   useEffect(() => {
     const len = liveState.history.length;
     if (len > prevHistoryLen.current && liveState.lastMove) {
@@ -197,7 +196,6 @@ export function useGameController() {
     }
     prevHistoryLen.current = len;
   }, [liveState]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: hapticsRef is a stable ref.
   useEffect(() => {
     if (liveState.status.state === "won") hapticsRef.current.win();
   }, [liveState.status.state]);

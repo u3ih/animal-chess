@@ -7,8 +7,8 @@ import * as THREE from "three";
 import { PIECE_PALETTE } from "@/lib/piece-palette";
 import {
   getBasicMaterial,
-  getCollarGeometry,
   getCapsuleGeometry,
+  getCollarGeometry,
   getConeGeometry,
   getCylinderGeometry,
   getStandardMaterial,

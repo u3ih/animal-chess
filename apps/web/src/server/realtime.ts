@@ -214,7 +214,7 @@ export function registerRealtimeServer(io: IO) {
 
     socket.on("room:join", (payload) => {
       const room = rooms.get(payload.roomId.toUpperCase());
-      if (!room || room.phase !== "lobby" || room.players.length >= 2) {
+      if (room?.phase !== "lobby" || room.players.length >= 2) {
         socket.emit("room:error", "Room unavailable");
         return;
       }
@@ -226,7 +226,7 @@ export function registerRealtimeServer(io: IO) {
 
     socket.on("room:ready", () => {
       const room = rooms.get(socket.data.roomId);
-      if (!room || room.phase !== "lobby") return;
+      if (room?.phase !== "lobby") return;
       const player = room.players.find((entry) => entry.socketId === socket.id);
       // Host (players[0]) has no ready toggle — they hold the Start button instead.
       if (!player || player.socketId === room.players[0]?.socketId) return;
@@ -236,7 +236,7 @@ export function registerRealtimeServer(io: IO) {
 
     socket.on("room:start", () => {
       const room = rooms.get(socket.data.roomId);
-      if (!room || room.phase !== "lobby") return;
+      if (room?.phase !== "lobby") return;
       const host = room.players[0];
       const opponent = room.players[1];
       // Only the host may start, and only once a connected opponent is ready.

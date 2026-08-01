@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col
 
 from app.enums import RewardSource
 from app.events import publish_to_user
@@ -34,7 +35,7 @@ class PurchaseOutcome:
 
 
 async def list_owned(session: AsyncSession, user_id: int) -> list[str]:
-    rows = await session.execute(select(UserCosmetic.cosmetic_id).where(UserCosmetic.user_id == user_id))
+    rows = await session.execute(select(col(UserCosmetic.cosmetic_id)).where(col(UserCosmetic.user_id) == user_id))
     return list(rows.scalars().all())
 
 

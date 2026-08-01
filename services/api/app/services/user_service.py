@@ -4,7 +4,9 @@ from dataclasses import dataclass
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col
 
+from app.core.narrowing import must
 from app.core.time import utcnow
 from app.enums import UserKind
 from app.models.gamification import LoginStreak, WinStreak
@@ -22,7 +24,7 @@ class MeAggregate:
 
 
 async def _user_by_email(session: AsyncSession, email: str) -> User | None:
-    return (await session.execute(select(User).where(User.email == email))).scalar_one_or_none()
+    return (await session.execute(select(User).where(col(User.email) == email))).scalar_one_or_none()
 
 
 async def get_user(session: AsyncSession, user_id: int) -> User | None:
@@ -77,7 +79,7 @@ async def upsert_google_user(
         )
         session.add(user)
         await session.flush()
-        await ensure_progress_rows(session, user.id)
+        await ensure_progress_rows(session, must(user.id, "user.id after flush"))
         await session.commit()
         await session.refresh(user)
         return user
@@ -91,7 +93,7 @@ async def upsert_google_user(
         user.external_id = external_id
         changed = True
     user.last_seen_at = utcnow()
-    await ensure_progress_rows(session, user.id)
+    await ensure_progress_rows(session, must(user.id, "user.id of a persisted row"))
     if changed:
         session.add(user)
     await session.commit()
@@ -105,11 +107,19 @@ async def get_me(session: AsyncSession, user_id: int) -> MeAggregate | None:
         return None
     await ensure_progress_rows(session, user_id)
     await session.commit()
+    # ensure_progress_rows + commit above guarantee every row below exists (rating stays optional —
+    # guests never get one).
     rating = await session.get(UserRating, user_id)
     wallet = await session.get(UserWallet, user_id)
     login = await session.get(LoginStreak, user_id)
     win = await session.get(WinStreak, user_id)
-    return MeAggregate(user=user, rating=rating, wallet=wallet, login=login, win=win)
+    return MeAggregate(
+        user=user,
+        rating=rating,
+        wallet=must(wallet, "user_wallet row"),
+        login=must(login, "login_streak row"),
+        win=must(win, "win_streak row")
+    )
 
 
 async def update_username(session: AsyncSession, user_id: int, raw: str) -> User:
@@ -133,7 +143,7 @@ async def search_users(session: AsyncSession, query: str, limit: int, exclude_id
         return []
     stmt = (
         select(User)
-        .where(User.kind == UserKind.GOOGLE.value)
+        .where(col(User.kind) == UserKind.GOOGLE.value)
         .where(func.lower(User.username).like(f"{q}%"))
         .order_by(func.lower(User.username))
         .limit(min(limit, 25))

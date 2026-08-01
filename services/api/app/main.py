@@ -1,6 +1,7 @@
 """FastAPI app factory: public + internal GraphQL routers, CORS, Redis lifespan."""
 
 from contextlib import asynccontextmanager
+from typing import Any
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -55,10 +56,16 @@ def create_app() -> FastAPI:
         allow_headers=["Authorization", "Content-Type", "X-Guest-Id", "X-Guest-Name"],
     )
 
-    public = GraphQLRouter(public_schema, context_getter=get_context, path="/graphql")
+    # The routers are explicitly parameterized by their context type: unparameterized, the context
+    # defaults to None and every context_getter looks like the wrong shape.
+    public: GraphQLRouter[dict[str, Any], None] = GraphQLRouter(
+        public_schema, context_getter=get_context, path="/graphql"
+    )
     app.include_router(public)
 
-    internal = GraphQLRouter(internal_schema, context_getter=get_internal_context, path="/internal/graphql")
+    internal: GraphQLRouter[dict[str, Any], None] = GraphQLRouter(
+        internal_schema, context_getter=get_internal_context, path="/internal/graphql"
+    )
     app.include_router(internal, dependencies=[Depends(verify_internal)])
 
     @app.get("/healthz")

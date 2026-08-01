@@ -3,6 +3,7 @@ packages:
   - "packages/*"
   - "services/*"
 allowBuilds:
-  '@parcel/watcher': set this to true or false
+  # Prebuilt binaries ship with the package; skip the node-gyp fallback build.
+  '@parcel/watcher': false
   esbuild: true
   sharp: true

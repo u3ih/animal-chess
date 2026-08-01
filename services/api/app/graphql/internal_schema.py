@@ -71,7 +71,7 @@ class InternalQuery:
 class InternalMutation:
     @strawberry.mutation
     async def report_match_result(self, info: strawberry.Info, input: MatchResultInput) -> MatchAck:
-        captured = {"red": [], "blue": []}
+        captured: dict[str, list[str]] = {"red": [], "blue": []}
         if input.captured_kinds is not None:
             captured = {"red": input.captured_kinds.red, "blue": input.captured_kinds.blue}
         data = match_service.MatchResultInput(

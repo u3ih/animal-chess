@@ -33,7 +33,7 @@ export function ChatLog({ messages, logRef }: { messages: ChatMessage[]; logRef?
 export function QuickChatRow({ disabled, onSend }: { disabled: boolean; onSend: (text: string) => void }) {
   const { t } = useTranslation();
   return (
-    <div className={styles.chatQuick} aria-label={t("chat.quickLabel")}>
+    <div className={styles.chatQuick} role="toolbar" aria-label={t("chat.quickLabel")}>
       {QUICK_TAUNTS.map((key) => (
         <button
           key={key}

@@ -21,11 +21,21 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
           cache: pnpm
+
+      # pnpm typecheck/test also drive @animal-chess/api (mypy + pytest), so the Python side has to
+      # be installed too — without it turbo fails the whole run on `mypy: command not found`.
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install Python dependencies
+        run: pip install -e "services/api[dev]"
 
       - name: Lint
         run: pnpm lint

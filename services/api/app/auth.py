@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.narrowing import must
 from app.core.security import AuthError, decode_session
 from app.enums import UserKind
 
@@ -27,6 +28,15 @@ class Principal:
     @property
     def is_guest(self) -> bool:
         return self.kind is UserKind.GUEST
+
+    @property
+    def db_id(self) -> int:
+        """The DB row id, for resolvers already behind ``require_google`` / an ``is_ranked`` check.
+
+        Guests have no row, so reach for this only where being ranked is a precondition — anywhere
+        an anonymous or guest caller is legitimate, read ``user_id`` and handle the ``None``.
+        """
+        return must(self.user_id, "user_id of a ranked principal")
 
 
 def _username_from_claims(claims: dict) -> str:

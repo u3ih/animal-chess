@@ -2,19 +2,32 @@
 
 from datetime import datetime
 from enum import Enum
+from typing import TypeAlias
 
 import strawberry
 
 from app import enums
 
-UserKind = strawberry.enum(enums.UserKind, description="How a player authenticates.")
-Tier = strawberry.enum(enums.Tier, description="Visible rank tier derived from hidden ELO.")
-FriendRequestStatus = strawberry.enum(enums.FriendRequestStatus)
-MatchResult = strawberry.enum(enums.MatchResult)
-MatchReason = strawberry.enum(enums.MatchReason, description="How a game ended.")
-QuestKind = strawberry.enum(enums.QuestKind)
-RoomVisibility = strawberry.enum(enums.RoomVisibility)
-LeaderboardKind = strawberry.enum(enums.LeaderboardKind)
+# ``strawberry.enum()`` attaches the GraphQL definition to the shared enum *in place* and hands back
+# the very same class, so registering and aliasing are two steps rather than one assignment. The
+# aliases must be spelled as ``TypeAlias`` for the annotations below to be real types, not variables.
+strawberry.enum(enums.UserKind, description="How a player authenticates.")
+strawberry.enum(enums.Tier, description="Visible rank tier derived from hidden ELO.")
+strawberry.enum(enums.FriendRequestStatus)
+strawberry.enum(enums.MatchResult)
+strawberry.enum(enums.MatchReason, description="How a game ended.")
+strawberry.enum(enums.QuestKind)
+strawberry.enum(enums.RoomVisibility)
+strawberry.enum(enums.LeaderboardKind)
+
+UserKind: TypeAlias = enums.UserKind
+Tier: TypeAlias = enums.Tier
+FriendRequestStatus: TypeAlias = enums.FriendRequestStatus
+MatchResult: TypeAlias = enums.MatchResult
+MatchReason: TypeAlias = enums.MatchReason
+QuestKind: TypeAlias = enums.QuestKind
+RoomVisibility: TypeAlias = enums.RoomVisibility
+LeaderboardKind: TypeAlias = enums.LeaderboardKind
 
 
 @strawberry.type(description="A player. Guests expose only a username; rank is google-only.")

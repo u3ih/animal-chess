@@ -35,6 +35,7 @@ export function InGameChat({
   }, [open, messages.length]);
 
   // Auto-scroll to the newest message whenever the log changes while open.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: messages.length is the scroll trigger, not read here.
   useLayoutEffect(() => {
     if (open && logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [open, messages.length]);

@@ -3,6 +3,7 @@
 import strawberry
 from graphql import GraphQLError
 
+from app.core.narrowing import must
 from app.enums import FriendRequestStatus
 from app.graphql import mappers
 from app.graphql import types as t
@@ -23,8 +24,9 @@ from app.services.validation import ValidationError
 
 
 async def _friend_request_gql(db, request) -> t.FriendRequest:
-    frm = await user_service.get_user(db, request.from_user_id)
-    to = await user_service.get_user(db, request.to_user_id)
+    # Both sides are FK-constrained to users.id, so a pending request always has both rows.
+    frm = must(await user_service.get_user(db, request.from_user_id), "the request's sender row")
+    to = must(await user_service.get_user(db, request.to_user_id), "the request's recipient row")
     return t.FriendRequest(
         id=strawberry.ID(str(request.id)),
         from_user=mappers.user(frm),
@@ -40,7 +42,7 @@ class Mutation:
     async def update_username(self, info: strawberry.Info, username: str) -> t.User:
         principal = await require_google(info)
         try:
-            user = await user_service.update_username(db_of(info), principal.user_id, username)
+            user = await user_service.update_username(db_of(info), principal.db_id, username)
         except ValidationError as exc:
             raise GraphQLError(str(exc)) from exc
         return mappers.user(user)
@@ -53,7 +55,7 @@ class Mutation:
         try:
             request = await friend_service.send_request(
                 db_of(info),
-                principal.user_id,
+                principal.db_id,
                 to_user_id=int(to_user_id) if to_user_id else None,
                 to_username=to_username,
             )
@@ -65,7 +67,7 @@ class Mutation:
     async def respond_friend_request(self, info: strawberry.Info, id: strawberry.ID, accept: bool) -> t.FriendRequest:
         principal = await require_google(info)
         try:
-            request = await friend_service.respond_request(db_of(info), principal.user_id, int(id), accept)
+            request = await friend_service.respond_request(db_of(info), principal.db_id, int(id), accept)
         except FriendError as exc:
             raise GraphQLError(str(exc)) from exc
         return await _friend_request_gql(db_of(info), request)
@@ -73,17 +75,17 @@ class Mutation:
     @strawberry.mutation
     async def cancel_friend_request(self, info: strawberry.Info, id: strawberry.ID) -> bool:
         principal = await require_google(info)
-        return await friend_service.cancel_request(db_of(info), principal.user_id, int(id))
+        return await friend_service.cancel_request(db_of(info), principal.db_id, int(id))
 
     @strawberry.mutation
     async def remove_friend(self, info: strawberry.Info, user_id: strawberry.ID) -> bool:
         principal = await require_google(info)
-        return await friend_service.remove_friend(db_of(info), principal.user_id, int(user_id))
+        return await friend_service.remove_friend(db_of(info), principal.db_id, int(user_id))
 
     @strawberry.mutation(description="Claim the once-per-day login bonus (idempotent per day).")
     async def claim_daily_bonus(self, info: strawberry.Info) -> t.RewardResult:
         principal = await require_google(info)
-        result = await login_service.claim_daily(db_of(info), principal.user_id)
+        result = await login_service.claim_daily(db_of(info), principal.db_id)
         return t.RewardResult(
             claimed=result.claimed,
             coins=result.coins,
@@ -97,7 +99,7 @@ class Mutation:
     @strawberry.mutation(description="Claim a completed daily quest (idempotent).")
     async def claim_quest(self, info: strawberry.Info, quest_id: strawberry.ID) -> t.RewardResult:
         principal = await require_google(info)
-        outcome = await quest_service.claim_quest(db_of(info), principal.user_id, int(quest_id))
+        outcome = await quest_service.claim_quest(db_of(info), principal.db_id, int(quest_id))
         if outcome is None:
             raise GraphQLError("quest not claimable")
         return t.RewardResult(
@@ -114,7 +116,7 @@ class Mutation:
     ) -> t.DirectMessage:
         principal = await require_google(info)
         try:
-            message = await chat_service.send_message(db_of(info), principal.user_id, int(to_user_id), body)
+            message = await chat_service.send_message(db_of(info), principal.db_id, int(to_user_id), body)
         except ChatError as exc:
             raise GraphQLError(str(exc)) from exc
         return t.DirectMessage(
@@ -129,13 +131,13 @@ class Mutation:
     @strawberry.mutation(description="Mark every message from one friend as read.")
     async def mark_dm_read(self, info: strawberry.Info, friend_id: strawberry.ID) -> bool:
         principal = await require_google(info)
-        await chat_service.mark_read(db_of(info), principal.user_id, int(friend_id))
+        await chat_service.mark_read(db_of(info), principal.db_id, int(friend_id))
         return True
 
     @strawberry.mutation(description="Invite a friend to your current Node room (by room code).")
     async def send_room_invite(self, info: strawberry.Info, to_user_id: strawberry.ID, room_code: str) -> bool:
         principal = await require_google(info)
-        me = await user_service.get_user(db_of(info), principal.user_id)
+        me = await user_service.get_user(db_of(info), principal.db_id)
         if me is None:
             return False
         return await lobby_service.send_invite(db_of(info), me, int(to_user_id), room_code)
@@ -144,7 +146,7 @@ class Mutation:
     async def purchase_cosmetic(self, info: strawberry.Info, cosmetic_id: str) -> t.PurchaseResult:
         principal = await require_google(info)
         try:
-            outcome = await cosmetic_service.purchase(db_of(info), principal.user_id, cosmetic_id)
+            outcome = await cosmetic_service.purchase(db_of(info), principal.db_id, cosmetic_id)
         except CosmeticError as exc:
             raise GraphQLError(str(exc)) from exc
         return t.PurchaseResult(cosmetic_id=outcome.cosmetic_id, coins=outcome.coins)

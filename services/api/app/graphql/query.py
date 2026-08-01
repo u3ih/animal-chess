@@ -40,10 +40,10 @@ class Query:
         principal = await get_principal(info)
         if principal is None or not principal.is_ranked:
             return None
-        agg = await user_service.get_me(db_of(info), principal.user_id)
+        agg = await user_service.get_me(db_of(info), principal.db_id)
         if agg is None:
             return None
-        rank = await leaderboard_service.my_rank(db_of(info), principal.user_id, LeaderboardKindEnum.ELO)
+        rank = await leaderboard_service.my_rank(db_of(info), principal.db_id, LeaderboardKindEnum.ELO)
         return t.Me(
             user=mappers.user(agg.user),
             rating=mappers.rating(agg.rating, leaderboard_rank=rank),
@@ -54,13 +54,13 @@ class Query:
     @strawberry.field(description="Prefix-search google users by username (for adding friends).")
     async def search_users(self, info: strawberry.Info, query: str, limit: int = 10) -> list[t.User]:
         principal = await require_google(info)
-        users = await user_service.search_users(db_of(info), query, limit, exclude_id=principal.user_id)
+        users = await user_service.search_users(db_of(info), query, limit, exclude_id=principal.db_id)
         return [mappers.user(u) for u in users]
 
     @strawberry.field
     async def friends(self, info: strawberry.Info) -> list[t.Friend]:
         principal = await require_google(info)
-        users = await friend_service.list_friends(db_of(info), principal.user_id)
+        users = await friend_service.list_friends(db_of(info), principal.db_id)
         online = await presence_service.online_keys()
         presence = {e["userId"]: e for e in await presence_service.snapshot()}
         out: list[t.Friend] = []
@@ -79,7 +79,7 @@ class Query:
     @strawberry.field
     async def friend_requests(self, info: strawberry.Info, incoming: bool = True) -> list[t.FriendRequest]:
         principal = await require_google(info)
-        rows = await friend_service.list_requests(db_of(info), principal.user_id, incoming=incoming)
+        rows = await friend_service.list_requests(db_of(info), principal.db_id, incoming=incoming)
         db = db_of(info)
         out: list[t.FriendRequest] = []
         for r in rows:
@@ -104,7 +104,7 @@ class Query:
         principal = await require_google(info)
         rows = await chat_service.list_messages(
             db_of(info),
-            principal.user_id,
+            principal.db_id,
             int(friend_id),
             limit=limit,
             before_id=int(before_id) if before_id else None,
@@ -114,16 +114,16 @@ class Query:
     @strawberry.field(description="Unread private-message counts per friend.")
     async def dm_unread(self, info: strawberry.Info) -> list[t.DmUnread]:
         principal = await require_google(info)
-        counts = await chat_service.unread_counts(db_of(info), principal.user_id)
+        counts = await chat_service.unread_counts(db_of(info), principal.db_id)
         return [t.DmUnread(friend_id=strawberry.ID(str(fid)), count=n) for fid, n in counts.items()]
 
     @strawberry.field
     async def rank_me(self, info: strawberry.Info) -> t.Rating | None:
         principal = await require_google(info)
-        agg = await user_service.get_me(db_of(info), principal.user_id)
+        agg = await user_service.get_me(db_of(info), principal.db_id)
         if agg is None:
             return None
-        rank = await leaderboard_service.my_rank(db_of(info), principal.user_id, LeaderboardKindEnum.ELO)
+        rank = await leaderboard_service.my_rank(db_of(info), principal.db_id, LeaderboardKindEnum.ELO)
         return mappers.rating(agg.rating, leaderboard_rank=rank)
 
     @strawberry.field
@@ -138,7 +138,7 @@ class Query:
     @strawberry.field(description="Today's quests (lazily assigned on first read).")
     async def quests(self, info: strawberry.Info) -> list[t.Quest]:
         principal = await require_google(info)
-        views = await quest_service.todays_quests(db_of(info), principal.user_id)
+        views = await quest_service.todays_quests(db_of(info), principal.db_id)
         return [
             t.Quest(
                 id=strawberry.ID(str(v.row.quest_id)),
@@ -157,7 +157,7 @@ class Query:
     @strawberry.field
     async def achievements(self, info: strawberry.Info) -> list[t.Achievement]:
         principal = await get_principal(info)
-        user_id = principal.user_id if (principal and principal.is_ranked) else None
+        user_id = principal.db_id if (principal and principal.is_ranked) else None
         rows = await achievement_service.list_for_user(db_of(info), user_id)
         return [
             t.Achievement(
@@ -173,7 +173,7 @@ class Query:
     @strawberry.field
     async def matches(self, info: strawberry.Info, limit: int = 20, before_id: int | None = None) -> list[t.Match]:
         principal = await require_google(info)
-        rows = await match_service.list_matches(db_of(info), principal.user_id, limit, before_id)
+        rows = await match_service.list_matches(db_of(info), principal.db_id, limit, before_id)
         out: list[t.Match] = []
         for row in rows:
             elo_delta = (
@@ -198,7 +198,7 @@ class Query:
     @strawberry.field
     async def daily_status(self, info: strawberry.Info) -> t.DailyStatus:
         principal = await require_google(info)
-        status = await login_service.daily_status(db_of(info), principal.user_id)
+        status = await login_service.daily_status(db_of(info), principal.db_id)
         return t.DailyStatus(claimable=status.claimable, streak=status.streak, next_multiplier=status.next_multiplier)
 
     @strawberry.field(description="Open public rooms to join.")
@@ -223,4 +223,4 @@ class Query:
     @strawberry.field(description="Cosmetic ids the signed-in player owns (paid costumes only).")
     async def owned_cosmetics(self, info: strawberry.Info) -> list[str]:
         principal = await require_google(info)
-        return await cosmetic_service.list_owned(db_of(info), principal.user_id)
+        return await cosmetic_service.list_owned(db_of(info), principal.db_id)
