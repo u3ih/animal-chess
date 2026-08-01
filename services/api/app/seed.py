@@ -3,6 +3,7 @@
 import asyncio
 
 from sqlalchemy import select
+from sqlmodel import col
 
 from app.db import async_session_factory
 from app.enums import QuestKind
@@ -50,11 +51,11 @@ ACHIEVEMENTS = [
 
 async def seed() -> None:
     async with async_session_factory() as session:
-        existing_quests = set((await session.execute(select(QuestDefinition.code))).scalars().all())
+        existing_quests = set((await session.execute(select(col(QuestDefinition.code)))).scalars().all())
         for q in QUESTS:
             if q["code"] not in existing_quests:
                 session.add(QuestDefinition(**q))
-        existing_ach = set((await session.execute(select(AchievementDefinition.code))).scalars().all())
+        existing_ach = set((await session.execute(select(col(AchievementDefinition.code)))).scalars().all())
         for a in ACHIEVEMENTS:
             if a["code"] not in existing_ach:
                 session.add(AchievementDefinition(**a))

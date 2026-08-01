@@ -15,8 +15,20 @@ import * as THREE from "three";
 export const UNIT_SPHERE = new THREE.SphereGeometry(1, 20, 14);
 /** Unit box (1×1×1); box UVs are 0..1 per face, so non-uniform scaling is lossless. */
 export const UNIT_BOX = new THREE.BoxGeometry(1, 1, 1);
-/** The team neck scarf torus — one shape worn by every piece. */
-export const COLLAR_TORUS = new THREE.TorusGeometry(0.21, 0.052, 12, 28);
+const collarCache = new Map<number, THREE.TorusGeometry>();
+/**
+ * The team neck scarf. Each animal needs its own ring radius (an elephant's neck is twice a rat's),
+ * but the band must stay the same thickness on all of them — scaling one shared torus would fatten
+ * the big ones — so cache an exact torus per radius (8 kinds → 8 geometries).
+ */
+export function getCollarGeometry(r: number): THREE.TorusGeometry {
+  let geo = collarCache.get(r);
+  if (!geo) {
+    geo = new THREE.TorusGeometry(r, 0.042, 10, 28);
+    collarCache.set(r, geo);
+  }
+  return geo;
+}
 
 const coneCache = new Map<number, THREE.ConeGeometry>();
 /** Unit cone (r=1, h=1) at a radial segment count; scale [r, h, r] per-mesh. */

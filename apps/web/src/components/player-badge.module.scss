@@ -82,16 +82,23 @@
   white-space: nowrap;
 }
 
+.badgeTimer {
+  display: grid;
+  gap: 3px;
+  min-width: 88px;
+}
+
 .badgeClock {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--muted);
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .playerBadge.foe .badgeClock {
   flex-direction: row-reverse;
+  justify-content: flex-start;
 }
 
 .badgeClock svg {
@@ -100,6 +107,44 @@
 }
 
 .badgeClock.urgent {
-  color: var(--danger);
   font-weight: 800;
+  animation: clock-pulse 1s ease-in-out infinite;
+}
+
+/* Drain bar: width tracks the seconds left, color is set inline (green → yellow → orange → red). */
+.badgeBar {
+  display: block;
+  height: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.badgeBar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition:
+    width 0.9s linear,
+    background 0.9s linear;
+}
+
+.playerBadge.foe .badgeBar {
+  transform: scaleX(-1);
+}
+
+@keyframes clock-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badgeClock.urgent {
+    animation: none;
+  }
+
+  .badgeBar i {
+    transition: none;
+  }
 }

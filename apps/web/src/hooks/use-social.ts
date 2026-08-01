@@ -68,6 +68,9 @@ export type {
 
 const MAX_TOASTS = 4;
 
+/** Reward toasts carry a client-side `key` so React can track them across dismissals (the payload has no id). */
+export type KeyedRewardEvent = RewardEvent & { key: number };
+
 /** All social / rank / gamification state for the signed-in player, over the Python GraphQL API. */
 export function useSocial(identity?: PlayerIdentity) {
   const [me, setMe] = useState<Me | null>(null);
@@ -78,7 +81,7 @@ export function useSocial(identity?: PlayerIdentity) {
   const [lobby, setLobby] = useState<LobbyRoom[]>([]);
   const [quests, setQuests] = useState<Quest[]>([]);
   const [dailyStatus, setDailyStatus] = useState<DailyStatus | null>(null);
-  const [toasts, setToasts] = useState<RewardEvent[]>([]);
+  const [toasts, setToasts] = useState<KeyedRewardEvent[]>([]);
   const [dmThreads, setDmThreads] = useState<Record<string, DirectMessage[]>>({});
   const [dmUnread, setDmUnread] = useState<Record<string, number>>({});
   const [activeDmFriendId, setActiveDmFriendId] = useState<string | null>(null);
@@ -223,7 +226,9 @@ export function useSocial(identity?: PlayerIdentity) {
           )
         );
         sub<{ rewardToasts: RewardEvent }>(client, REWARD_SUB, (d) =>
-          setToasts((cur) => [...cur, d.rewardToasts].slice(-MAX_TOASTS))
+          setToasts((cur) =>
+            [...cur, { ...d.rewardToasts, key: (cur[cur.length - 1]?.key ?? -1) + 1 }].slice(-MAX_TOASTS)
+          )
         );
         sub<{ directMessageEvents: DirectMessage }>(client, DM_SUB, (d) => {
           const message = d.directMessageEvents;

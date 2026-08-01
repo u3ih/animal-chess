@@ -3,8 +3,9 @@
 Friends-only by design: no unsolicited DMs, so no separate block/report surface is needed yet.
 """
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import ColumnElement, and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col
 
 from app.core.time import utcnow
 from app.events import publish_to_user
@@ -19,10 +20,10 @@ class ChatError(Exception):
     pass
 
 
-def _pair_filter(a: int, b: int):
+def _pair_filter(a: int, b: int) -> ColumnElement[bool]:
     return or_(
-        and_(DirectMessage.sender_id == a, DirectMessage.recipient_id == b),
-        and_(DirectMessage.sender_id == b, DirectMessage.recipient_id == a),
+        and_(col(DirectMessage.sender_id) == a, col(DirectMessage.recipient_id) == b),
+        and_(col(DirectMessage.sender_id) == b, col(DirectMessage.recipient_id) == a),
     )
 
 
@@ -60,11 +61,11 @@ async def list_messages(
     stmt = (
         select(DirectMessage)
         .where(_pair_filter(user_id, friend_id))
-        .order_by(DirectMessage.id.desc())
+        .order_by(col(DirectMessage.id).desc())
         .limit(min(limit, MAX_PAGE))
     )
     if before_id is not None:
-        stmt = stmt.where(DirectMessage.id < before_id)
+        stmt = stmt.where(col(DirectMessage.id) < before_id)
     rows = list((await session.execute(stmt)).scalars().all())
     rows.reverse()
     return rows
@@ -72,9 +73,9 @@ async def list_messages(
 
 async def mark_read(session: AsyncSession, user_id: int, friend_id: int) -> int:
     stmt = select(DirectMessage).where(
-        DirectMessage.recipient_id == user_id,
-        DirectMessage.sender_id == friend_id,
-        DirectMessage.read_at.is_(None),
+        col(DirectMessage.recipient_id) == user_id,
+        col(DirectMessage.sender_id) == friend_id,
+        col(DirectMessage.read_at).is_(None),
     )
     rows = list((await session.execute(stmt)).scalars().all())
     now = utcnow()
@@ -89,8 +90,8 @@ async def mark_read(session: AsyncSession, user_id: int, friend_id: int) -> int:
 async def unread_counts(session: AsyncSession, user_id: int) -> dict[int, int]:
     """Unread message count per friend (sender id → count)."""
     stmt = (
-        select(DirectMessage.sender_id, func.count())
-        .where(DirectMessage.recipient_id == user_id, DirectMessage.read_at.is_(None))
-        .group_by(DirectMessage.sender_id)
+        select(col(DirectMessage.sender_id), func.count())
+        .where(col(DirectMessage.recipient_id) == user_id, col(DirectMessage.read_at).is_(None))
+        .group_by(col(DirectMessage.sender_id))
     )
     return {sender_id: count for sender_id, count in (await session.execute(stmt)).all()}

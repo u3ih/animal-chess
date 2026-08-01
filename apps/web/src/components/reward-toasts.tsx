@@ -5,13 +5,20 @@ import type { RewardEvent } from "@animal-chess/social-protocol";
 import { IconButton } from "@animal-chess/ui";
 import { Award, Coins, X } from "lucide-react";
 import { useEffect } from "react";
+import type { KeyedRewardEvent } from "@/hooks/use-social";
 import { TIER_LABEL_KEY } from "@/lib/labels";
 import styles from "./reward-toasts.module.scss";
 
 const AUTO_DISMISS_MS = 4500;
 
 /** Stacked "you earned…" toasts (match rewards, tier promotions, achievements). Auto-dismiss oldest. */
-export function RewardToasts({ toasts, onDismiss }: { toasts: RewardEvent[]; onDismiss: (index: number) => void }) {
+export function RewardToasts({
+  toasts,
+  onDismiss
+}: {
+  toasts: KeyedRewardEvent[];
+  onDismiss: (index: number) => void;
+}) {
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -42,7 +49,7 @@ export function RewardToasts({ toasts, onDismiss }: { toasts: RewardEvent[]; onD
   return (
     <div className={styles.stack} aria-live="polite">
       {toasts.map((toast, index) => (
-        <div key={`${toast.source}-${toast.achievement ?? toast.tier ?? ""}-${index}`} className={styles.toast}>
+        <div key={toast.key} className={styles.toast}>
           <Award aria-hidden="true" />
           <span className={styles.label}>{label(toast)}</span>
           {toast.coins > 0 || toast.xp > 0 ? (

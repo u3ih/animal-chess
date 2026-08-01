@@ -44,7 +44,7 @@ testpaths = ["tests"]
 
 [tool.mypy]
 python_version = "3.11"
-plugins = ["pydantic.mypy"]
+plugins = ["pydantic.mypy", "strawberry.ext.mypy_plugin"]
 ignore_missing_imports = true
 
 [build-system]

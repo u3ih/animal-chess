@@ -1,8 +1,12 @@
 """Achievements. Unlock is idempotent (PK pair); unlocking grants its reward."""
 
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col
 
+from app.core.narrowing import must
 from app.enums import RewardSource, Tier
 from app.gamification import TIER_ORDER, tier_for
 from app.models.achievement import AchievementDefinition, UserAchievement
@@ -18,7 +22,7 @@ _TIER_ACHIEVEMENTS = [
 
 async def _def_by_code(session: AsyncSession, code: str) -> AchievementDefinition | None:
     return (
-        await session.execute(select(AchievementDefinition).where(AchievementDefinition.code == code))
+        await session.execute(select(AchievementDefinition).where(col(AchievementDefinition.code) == code))
     ).scalar_one_or_none()
 
 
@@ -74,12 +78,18 @@ async def evaluate_for_match(
     return unlocked
 
 
-async def list_for_user(session: AsyncSession, user_id: int | None) -> list[tuple[AchievementDefinition, bool, object]]:
+async def list_for_user(
+    session: AsyncSession, user_id: int | None
+) -> list[tuple[AchievementDefinition, bool, datetime | None]]:
     defs = list((await session.execute(select(AchievementDefinition))).scalars().all())
-    held: dict[int, object] = {}
+    held: dict[int, datetime | None] = {}
     if user_id is not None:
         rows = (
-            await session.execute(select(UserAchievement).where(UserAchievement.user_id == user_id))
+            await session.execute(select(UserAchievement).where(col(UserAchievement.user_id) == user_id))
         ).scalars().all()
         held = {r.achievement_id: r.unlocked_at for r in rows}
-    return [(d, d.id in held, held.get(d.id)) for d in defs]
+    out: list[tuple[AchievementDefinition, bool, datetime | None]] = []
+    for d in defs:
+        def_id = must(d.id, "achievement definition id")
+        out.append((d, def_id in held, held.get(def_id)))
+    return out

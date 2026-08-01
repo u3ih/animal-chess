@@ -53,3 +53,14 @@ export function surfaceY(pos: Position): number {
   const fromEdge = Math.min(pos.row, BOARD_ROWS - 1 - pos.row);
   return ROW_LIFT[fromEdge] ?? 0;
 }
+
+/** Top of the wooden stilt planted in every water cell — what a swimmer actually stands on. */
+export const WATER_POST_TOP = 0.1;
+
+/**
+ * Height a *piece* rests at. Same as the tile surface everywhere except water: the rat hops up
+ * onto the stilt instead of sinking to the water plane ([WaterPosts](./WaterPosts.tsx)).
+ */
+export function pieceSurfaceY(pos: Position): number {
+  return WATER.some((w) => samePos(w, pos)) ? WATER_POST_TOP : surfaceY(pos);
+}

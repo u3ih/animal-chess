@@ -9,6 +9,7 @@ from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col
 
 from app.core.time import utcnow
 from app.enums import RoomVisibility
@@ -47,7 +48,7 @@ async def _publish_list() -> None:
 async def _host_tier(session: AsyncSession, host_id: str) -> str | None:
     if "@" not in host_id:
         return None
-    user = (await session.execute(select(User).where(User.email == host_id))).scalar_one_or_none()
+    user = (await session.execute(select(User).where(col(User.email) == host_id))).scalar_one_or_none()
     if user is None:
         return None
     rating = await session.get(UserRating, user.id)

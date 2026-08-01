@@ -10,7 +10,9 @@ from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col
 
+from app.core.narrowing import must
 from app.core.time import server_day, utcnow
 from app.enums import QuestKind, RewardSource
 from app.events import publish_to_user
@@ -38,12 +40,12 @@ def _weighted_sample(defs: list[QuestDefinition], k: int, rng: random.Random) ->
 
 
 async def _active_defs(session: AsyncSession) -> list[QuestDefinition]:
-    stmt = select(QuestDefinition).where(QuestDefinition.is_active == True)  # noqa: E712
+    stmt = select(QuestDefinition).where(col(QuestDefinition.is_active) == True)  # noqa: E712
     return list((await session.execute(stmt)).scalars().all())
 
 
 async def _rows_for_day(session: AsyncSession, user_id: int, day: date) -> list[UserDailyQuest]:
-    stmt = select(UserDailyQuest).where(UserDailyQuest.user_id == user_id, UserDailyQuest.day == day)
+    stmt = select(UserDailyQuest).where(col(UserDailyQuest.user_id) == user_id, col(UserDailyQuest.day) == day)
     return list((await session.execute(stmt)).scalars().all())
 
 
@@ -85,8 +87,8 @@ def _advance(row: UserDailyQuest, value: int) -> None:
 async def _defs_by_id(session: AsyncSession, ids: set[int]) -> dict[int, QuestDefinition]:
     if not ids:
         return {}
-    stmt = select(QuestDefinition).where(QuestDefinition.id.in_(ids))
-    return {d.id: d for d in (await session.execute(stmt)).scalars().all()}
+    stmt = select(QuestDefinition).where(col(QuestDefinition.id).in_(ids))
+    return {must(d.id, "quest definition id"): d for d in (await session.execute(stmt)).scalars().all()}
 
 
 async def bump(session: AsyncSession, user_id: int, kind: QuestKind, *, amount: int = 1) -> None:

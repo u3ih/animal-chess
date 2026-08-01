@@ -52,7 +52,7 @@ class Subscription:
     @strawberry.subscription(description="Incoming friend requests / accepts.")
     async def friend_events(self, info: strawberry.Info) -> AsyncGenerator[t.FriendEvent, None]:
         principal = await require_google(info)
-        async for msg in subscribe(user_channel(principal.user_id)):
+        async for msg in subscribe(user_channel(principal.db_id)):
             kind = msg.get("type")
             if kind == "friendRequest":
                 yield t.FriendEvent(
@@ -75,14 +75,14 @@ class Subscription:
     @strawberry.subscription(description="Room invites (carry a Node room code).")
     async def invites(self, info: strawberry.Info) -> AsyncGenerator[t.RoomInvite, None]:
         principal = await require_google(info)
-        async for msg in subscribe(user_channel(principal.user_id)):
+        async for msg in subscribe(user_channel(principal.db_id)):
             if msg.get("type") == "invite":
                 yield t.RoomInvite(from_user=_user(msg["fromUser"]), room_code=msg["roomCode"])
 
     @strawberry.subscription(description="Live ELO/tier changes after ranked matches.")
     async def rank_updates(self, info: strawberry.Info) -> AsyncGenerator[t.RankUpdate, None]:
         principal = await require_google(info)
-        async for msg in subscribe(user_channel(principal.user_id)):
+        async for msg in subscribe(user_channel(principal.db_id)):
             if msg.get("type") == "rank":
                 yield t.RankUpdate(
                     elo=msg["elo"], tier=t.Tier(msg["tier"]), division=msg.get("division"), delta=msg["delta"]
@@ -91,7 +91,7 @@ class Subscription:
     @strawberry.subscription(description="Live coin/XP/level changes.")
     async def wallet_updates(self, info: strawberry.Info) -> AsyncGenerator[t.WalletUpdate, None]:
         principal = await require_google(info)
-        async for msg in subscribe(user_channel(principal.user_id)):
+        async for msg in subscribe(user_channel(principal.db_id)):
             if msg.get("type") == "wallet":
                 yield t.WalletUpdate(
                     coins=msg["coins"], xp=msg["xp"], level=msg["level"], leveled_up=msg.get("leveledUp", False)
@@ -100,7 +100,7 @@ class Subscription:
     @strawberry.subscription(description="Live daily-quest progress.")
     async def quest_updates(self, info: strawberry.Info) -> AsyncGenerator[t.QuestUpdate, None]:
         principal = await require_google(info)
-        async for msg in subscribe(user_channel(principal.user_id)):
+        async for msg in subscribe(user_channel(principal.db_id)):
             if msg.get("type") == "quest":
                 yield t.QuestUpdate(
                     quest_id=strawberry.ID(str(msg["questId"])),
@@ -113,7 +113,7 @@ class Subscription:
     @strawberry.subscription(description="'You earned…' reward + achievement + tier-promotion toasts.")
     async def reward_toasts(self, info: strawberry.Info) -> AsyncGenerator[t.RewardEvent, None]:
         principal = await require_google(info)
-        async for msg in subscribe(user_channel(principal.user_id)):
+        async for msg in subscribe(user_channel(principal.db_id)):
             if msg.get("type") == "reward":
                 tier = t.Tier(msg["tier"]) if msg.get("tier") else None
                 yield t.RewardEvent(source=msg["source"], coins=msg["coins"], xp=msg["xp"], tier=tier)
@@ -123,7 +123,7 @@ class Subscription:
     @strawberry.subscription(description="Private messages involving the caller (both directions).")
     async def direct_message_events(self, info: strawberry.Info) -> AsyncGenerator[t.DirectMessage, None]:
         principal = await require_google(info)
-        async for msg in subscribe(user_channel(principal.user_id)):
+        async for msg in subscribe(user_channel(principal.db_id)):
             if msg.get("type") == "dm":
                 yield t.DirectMessage(
                     id=strawberry.ID(str(msg["id"])),

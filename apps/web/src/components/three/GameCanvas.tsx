@@ -15,7 +15,8 @@ import { memo, useEffect } from "react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { AnimalPiece } from "./AnimalPiece";
 import { Board3D } from "./Board3D";
-import { CaptureBurst, DenBeam, Motes } from "./effects";
+import { CaptureBurst, DenBeam, Motes, MoveFx } from "./effects";
+import { tileDistance, travelDuration } from "./motion";
 import type { EquippedCostumes } from "./skins";
 
 const TEAM_COLOR: Record<Player, string> = { red: "#ffcaa0", blue: "#a9c8ff" };
@@ -85,6 +86,11 @@ function Scene({
   const playing = state.status.state === "playing";
   const captured = capturedFromLastMove(state);
   const reduced = useReducedMotion();
+  const lastMove = state.lastMove;
+  // Identifies one move, so the VFX remount (and replay) exactly once per move.
+  const moveKey = lastMove ? `${lastMove.pieceId}-${lastMove.to.row}-${lastMove.to.col}-${state.history.length}` : "";
+  // Impact beat: the captured piece must not vanish before the attacker lands on it.
+  const landAt = lastMove ? travelDuration(tileDistance(lastMove.from, lastMove.to), reduced) : 0;
 
   return (
     <>
@@ -118,6 +124,7 @@ function Scene({
       <DenBeam pos={DENS.red} owner="red" reduced={reduced} />
       <DenBeam pos={DENS.blue} owner="blue" reduced={reduced} />
       {reduced ? null : <Motes />}
+      {reduced || !lastMove ? null : <MoveFx key={`fx-${moveKey}`} move={lastMove} />}
 
       {state.pieces.map((piece) => (
         <AnimalPiece
@@ -146,10 +153,16 @@ function Scene({
             interactive={false}
             reduced={reduced}
             exiting
+            exitDelay={landAt}
             onSelect={() => {}}
           />
           {reduced ? null : (
-            <CaptureBurst key={`burst-${captured.id}`} pos={captured.position} color={TEAM_COLOR[captured.owner]} />
+            <CaptureBurst
+              key={`burst-${moveKey}`}
+              pos={captured.position}
+              color={TEAM_COLOR[captured.owner]}
+              delay={landAt}
+            />
           )}
         </>
       ) : null}

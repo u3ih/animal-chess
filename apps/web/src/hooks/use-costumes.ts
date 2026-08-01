@@ -50,6 +50,7 @@ export function useCostumes(identity?: PlayerIdentity): CostumesApi {
   // Fetch backend ownership for signed-in google users (never on static export / for guests).
   const isGoogle = identity?.kind === "google";
   const userId = identity?.userId;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: userId re-triggers the fetch on account switch (the request reads identityRef).
   useEffect(() => {
     if (STATIC_EXPORT || !isGoogle) {
       setOwned(new Set(FREE_IDS));

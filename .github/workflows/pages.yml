@@ -33,11 +33,21 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
           cache: pnpm
+
+      # The static export ships no Python, but `pnpm typecheck`/`pnpm test` below still fan out to
+      # @animal-chess/api (mypy + pytest) — without an interpreter turbo fails on `mypy: not found`.
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install Python dependencies
+        run: pip install -e "services/api[dev]"
 
       - name: Lint
         run: pnpm lint

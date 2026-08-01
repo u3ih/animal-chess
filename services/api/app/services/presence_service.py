@@ -27,7 +27,8 @@ async def snapshot() -> list[dict]:
 
 
 async def online_keys() -> set[str]:
-    return set(await get_redis().hkeys(_KEY))
+    keys = await get_redis().hkeys(_KEY)
+    return {k.decode() if isinstance(k, bytes) else k for k in keys}
 
 
 async def set_online(external_key: str, username: str, room_id: str | None = None) -> None:

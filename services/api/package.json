@@ -3,15 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "description": "Turborepo shim for the Python GraphQL backend (services/api). Real deps live in pyproject.toml.",
+  "comment": "Turbo runs these in a bare shell, so a local .venv would be invisible. Prepending it to PATH picks it up when present and falls through to the ambient interpreter (CI, conda, a global install) when not.",
   "scripts": {
-    "dev": "uvicorn app.asgi:app --reload --host 0.0.0.0 --port ${PORT:-8000}",
-    "start": "uvicorn app.asgi:app --host 0.0.0.0 --port ${PORT:-8000}",
-    "migrate": "alembic upgrade head",
-    "makemigration": "alembic revision --autogenerate -m",
-    "seed": "python -m app.seed",
-    "schema:export": "python -m app.export_schema",
-    "test": "pytest",
-    "lint": "ruff check .",
-    "typecheck": "mypy app"
+    "dev": "PATH=\"$PWD/.venv/bin:$PATH\" uvicorn app.asgi:app --reload --host 0.0.0.0 --port ${PORT:-8000}",
+    "start": "PATH=\"$PWD/.venv/bin:$PATH\" uvicorn app.asgi:app --host 0.0.0.0 --port ${PORT:-8000}",
+    "migrate": "PATH=\"$PWD/.venv/bin:$PATH\" alembic upgrade head",
+    "makemigration": "PATH=\"$PWD/.venv/bin:$PATH\" alembic revision --autogenerate -m",
+    "seed": "PATH=\"$PWD/.venv/bin:$PATH\" python -m app.seed",
+    "schema:export": "PATH=\"$PWD/.venv/bin:$PATH\" python -m app.export_schema",
+    "test": "PATH=\"$PWD/.venv/bin:$PATH\" pytest",
+    "lint": "PATH=\"$PWD/.venv/bin:$PATH\" ruff check .",
+    "typecheck": "PATH=\"$PWD/.venv/bin:$PATH\" mypy app"
   }
 }

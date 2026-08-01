@@ -4,21 +4,34 @@ import type { Player } from "@animal-chess/game-core";
 import { cx } from "@animal-chess/ui";
 import { Timer } from "lucide-react";
 import { memo, type ReactNode, useSyncExternalStore } from "react";
-import { getClockServerSnapshot, getClockSnapshot, subscribeClock } from "@/lib/clock-store";
+import { getClockServerSnapshot, getClockSnapshot, MOVE_SECONDS, subscribeClock } from "@/lib/clock-store";
 import styles from "./player-badge.module.scss";
+
+/** Green → yellow → orange → red as the move clock drains (hue 120°..0° follows that exact ramp). */
+function clockColor(ratio: number): string {
+  return `hsl(${Math.round(120 * Math.max(0, Math.min(1, ratio)))} 82% 52%)`;
+}
 
 /**
  * Leaf clock that subscribes to the external clock store, so per-second ticks re-render only this
- * `<span>` rather than the whole game tree.
+ * leaf rather than the whole game tree. The bar drains with the remaining time and shifts hue with
+ * it, so pressure reads at a glance without parsing the number.
  */
 function BadgeClock({ color, active }: { color: Player; active: boolean }) {
   const clock = useSyncExternalStore(subscribeClock, getClockSnapshot, getClockServerSnapshot);
   const seconds = clock[color];
+  const ratio = Math.max(0, Math.min(1, seconds / MOVE_SECONDS));
+  const tint = clockColor(ratio);
   const urgent = active && seconds <= 15;
   return (
-    <span className={cx(styles.badgeClock, urgent && styles.urgent)}>
-      <Timer />
-      {seconds}s
+    <span className={styles.badgeTimer}>
+      <span className={cx(styles.badgeClock, urgent && styles.urgent)} style={{ color: tint }}>
+        <Timer />
+        {seconds}s
+      </span>
+      <span className={styles.badgeBar} aria-hidden="true">
+        <i style={{ width: `${ratio * 100}%`, background: tint }} />
+      </span>
     </span>
   );
 }

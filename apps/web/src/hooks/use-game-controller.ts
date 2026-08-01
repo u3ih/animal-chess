@@ -21,16 +21,13 @@ import { useHaptics } from "@/hooks/use-haptics";
 import { useOnlineGame } from "@/hooks/use-online-game";
 import { usePlayerIdentity } from "@/hooks/use-player-identity";
 import { useSocial } from "@/hooks/use-social";
-import { setClock } from "@/lib/clock-store";
+import { MOVE_SECONDS, setClock } from "@/lib/clock-store";
 import { STATIC_EXPORT } from "@/lib/flags";
 import { withViewTransition } from "@/lib/view-transition";
 
 export type Mode = "ai" | "online";
 
 export const PIECE_ORDER = Object.keys(PIECE_RANK) as PieceKind[];
-
-/** Seconds allowed per move (mirrors the server's MOVE_SECONDS). */
-export const MOVE_SECONDS = 90;
 
 export type Dir = "up" | "down" | "left" | "right";
 
@@ -192,7 +189,6 @@ export function useGameController() {
   // Haptics mirror the sound cues. Watching `liveState` covers AI mode, your own online move, and the
   // opponent's move uniformly. Only buzz when history grows (guards undo/reset, which shrink it).
   const prevHistoryLen = useRef(liveState.history.length);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: hapticsRef is a stable ref; liveState covers lastMove.
   useEffect(() => {
     const len = liveState.history.length;
     if (len > prevHistoryLen.current && liveState.lastMove) {
@@ -200,7 +196,6 @@ export function useGameController() {
     }
     prevHistoryLen.current = len;
   }, [liveState]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: hapticsRef is a stable ref.
   useEffect(() => {
     if (liveState.status.state === "won") hapticsRef.current.win();
   }, [liveState.status.state]);
