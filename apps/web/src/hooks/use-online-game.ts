@@ -1,17 +1,16 @@
 "use client";
 
-import type { Player } from "@animal-chess/game-core";
 import type {
   ClientToServerEvents,
-  FriendRequest,
   MovePayload,
-  PresenceEntry,
-  RoomInvite,
   RoomSnapshot,
+  RoomVisibility,
   ServerToClientEvents
 } from "@animal-chess/net-protocol";
 import { useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
+import { setClock } from "../lib/clock-store";
+import { STATIC_EXPORT } from "../lib/flags";
 import { safeRandomUUID } from "../lib/uuid";
 import type { PlayerIdentity } from "./use-player-identity";
 
@@ -27,19 +26,16 @@ export type OnlineStatusKey =
   | "onlineStatus.roomError"
   | "onlineStatus.moveRejected";
 
-export type { FriendRequest, PresenceEntry, RoomInvite } from "@animal-chess/net-protocol";
-
+/**
+ * The live-game socket (Node server only): rooms, matchmaking, moves, clock, in-room chat.
+ * Social/presence/friends/rank/gamification live in `useSocial` (Python GraphQL).
+ */
 export function useOnlineGame(identity?: PlayerIdentity) {
   const socketRef = useRef<GameSocket | undefined>(undefined);
   const [snapshot, setSnapshot] = useState<RoomSnapshot>();
-  // Clock is kept out of `snapshot` so per-second ticks don't replace the game-state object
-  // (which would re-render the whole board/3D scene every second).
-  const [timer, setTimer] = useState<Record<Player, number>>({ red: 0, blue: 0 });
+  // Clock lives in an external store (not React state) so per-second ticks re-render only the leaf
+  // BadgeClock, never the game tree.
   const [status, setStatus] = useState<OnlineStatusKey>("onlineStatus.disconnected");
-  const [presence, setPresence] = useState<PresenceEntry[]>([]);
-  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
-  const [acceptedFriends, setAcceptedFriends] = useState<string[]>([]);
-  const [invites, setInvites] = useState<RoomInvite[]>([]);
   const [fallbackIdentity] = useState(() => ({
     userId: safeRandomUUID(),
     username: `Khách ${Math.floor(Math.random() * 900 + 100)}`
@@ -47,57 +43,49 @@ export function useOnlineGame(identity?: PlayerIdentity) {
   const player = identity ?? fallbackIdentity;
 
   useEffect(() => {
+    // Static GitHub Pages build has no Socket.IO server — never dial it.
+    if (STATIC_EXPORT) return;
     const nextSocket: GameSocket = io();
     nextSocket.on("connect", () => setStatus("onlineStatus.connected"));
     nextSocket.on("matchmaking:waiting", () => setStatus("onlineStatus.waiting"));
     nextSocket.on("game:snapshot", (payload: RoomSnapshot) => {
       setSnapshot(payload);
-      setTimer(payload.timer);
+      setClock(payload.timer);
       setStatus(payload.players.length < 2 ? "onlineStatus.waitingPlayer" : "onlineStatus.inMatch");
     });
-    nextSocket.on("game:clock", setTimer);
+    nextSocket.on("game:clock", setClock);
     nextSocket.on("room:error", () => setStatus("onlineStatus.roomError"));
     nextSocket.on("game:rejected", () => setStatus("onlineStatus.moveRejected"));
-    nextSocket.on("social:presence", setPresence);
-    nextSocket.on("social:requests", setFriendRequests);
-    nextSocket.on("social:friend-accepted", (username: string) =>
-      setAcceptedFriends((current) => (current.includes(username) ? current : [...current, username]))
-    );
-    nextSocket.on("social:invite", (invite: RoomInvite) => setInvites((current) => [...current, invite]));
     socketRef.current = nextSocket;
     return () => {
       nextSocket.disconnect();
     };
   }, []);
 
-  useEffect(() => {
-    if (!socketRef.current || !identity) return;
-    socketRef.current.emit("social:identify", identity);
-  }, [identity]);
-
   return {
     snapshot,
-    timer,
     status,
+    phase: snapshot?.phase,
     localPlayer: snapshot?.players.find((entry) => entry.userId === player.userId),
-    presence,
-    friendRequests,
-    acceptedFriends,
-    invites,
-    createRoom: () => socketRef.current?.emit("room:create", player),
+    /** Host = the first slot (room creator / queued player). Only the host can start. */
+    isHost: snapshot?.players[0]?.userId === player.userId,
+    createRoom: (visibility: RoomVisibility = "public") =>
+      socketRef.current?.emit("room:create", { ...player, visibility }),
     joinRoom: (roomId: string) => socketRef.current?.emit("room:join", { roomId, ...player }),
     quickMatch: () => socketRef.current?.emit("matchmaking:join", player),
     cancelMatch: () => {
       socketRef.current?.emit("matchmaking:leave");
       setStatus("onlineStatus.connected");
     },
+    toggleReady: () => socketRef.current?.emit("room:ready"),
+    startMatch: () => socketRef.current?.emit("room:start"),
+    leaveRoom: () => {
+      socketRef.current?.emit("room:leave");
+      setSnapshot(undefined);
+      setStatus("onlineStatus.connected");
+    },
     submitMove: (move: MovePayload) => socketRef.current?.emit("game:move", move),
     rematch: () => socketRef.current?.emit("game:rematch"),
-    sendChat: (text: string) => socketRef.current?.emit("chat:send", { ...player, text }),
-    sendFriendRequest: (toUsername: string) => socketRef.current?.emit("social:friend-request", { toUsername }),
-    acceptFriendRequest: (requestId: string) => socketRef.current?.emit("social:friend-accept", { requestId }),
-    inviteToRoom: (toUsername: string) => socketRef.current?.emit("social:invite", { toUsername }),
-    acceptInvite: (invite: RoomInvite) => socketRef.current?.emit("room:join", { roomId: invite.roomId, ...player }),
-    dismissInvite: (inviteId: string) => setInvites((current) => current.filter((invite) => invite.id !== inviteId))
+    sendChat: (text: string) => socketRef.current?.emit("chat:send", { ...player, text })
   };
 }

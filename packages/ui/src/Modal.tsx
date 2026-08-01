@@ -27,15 +27,16 @@ export function Modal({ ariaLabel, children, onClose, role = "dialog", backdropC
   }, [onClose]);
 
   return (
-    <div className={cx("modal-backdrop", backdropClassName)} onClick={onClose}>
+    // biome-ignore lint/a11y/noStaticElementInteractions: backdrop click is a pointer convenience
+    // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard close is handled by the Escape listener above
+    <div
+      className={cx("modal-backdrop", backdropClassName)}
+      onClick={(event) => {
+        if (onClose && event.target === event.currentTarget) onClose();
+      }}
+    >
       {/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: role is always dialog|alertdialog, both support aria-modal */}
-      <div
-        className={cx("modal-card", className)}
-        role={role}
-        aria-modal="true"
-        aria-label={ariaLabel}
-        onClick={(event) => event.stopPropagation()}
-      >
+      <div className={cx("modal-card", className)} role={role} aria-modal="true" aria-label={ariaLabel}>
         {children}
       </div>
     </div>

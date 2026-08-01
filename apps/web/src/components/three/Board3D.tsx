@@ -4,9 +4,10 @@ import { DENS, type Move, type Position } from "@animal-chess/game-core";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import type * as THREE from "three";
-import { ALL_CELLS, BOARD_H, BOARD_W, tileToWorld } from "./coords";
+import { ALL_CELLS, BOARD_H, BOARD_W, surfaceY, tileToWorld } from "./coords";
 import { DenStructure } from "./DenStructure";
 import { RuinWall } from "./RuinWall";
+import { getBasicMaterial, getRingGeometry } from "./shared-assets";
 import { Tile } from "./Tile";
 import { getStoneTexture, getWaterTexture } from "./textures";
 
@@ -20,25 +21,26 @@ function MoveHint({ pos, capture, pulse }: { pos: Position; capture: boolean; pu
     }
   });
   return (
-    <mesh ref={ref} position={[wx, 0.06, wz]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={5}>
-      <ringGeometry args={capture ? [0.3, 0.46, 32] : [0.12, 0.22, 32]} />
-      <meshBasicMaterial color={capture ? "#f07a5f" : "#f6d373"} transparent opacity={0.92} depthWrite={false} />
-    </mesh>
+    <mesh
+      ref={ref}
+      position={[wx, surfaceY(pos) + 0.06, wz]}
+      rotation={[-Math.PI / 2, 0, 0]}
+      renderOrder={5}
+      geometry={capture ? getRingGeometry(0.3, 0.46, 32) : getRingGeometry(0.12, 0.22, 32)}
+      material={capture ? getBasicMaterial("#f07a5f", 0.92, false) : getBasicMaterial("#f6d373", 0.92, false)}
+    />
   );
 }
 
 function LastMark({ pos, kind }: { pos: Position; kind: "from" | "to" }) {
   const [wx, , wz] = tileToWorld(pos);
   return (
-    <mesh position={[wx, 0.04, wz]} rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[0.4, 0.46, 4]} />
-      <meshBasicMaterial
-        color={kind === "to" ? "#7fa05a" : "#cbd5c0"}
-        transparent
-        opacity={kind === "to" ? 0.85 : 0.5}
-        depthWrite={false}
-      />
-    </mesh>
+    <mesh
+      position={[wx, surfaceY(pos) + 0.04, wz]}
+      rotation={[-Math.PI / 2, 0, 0]}
+      geometry={getRingGeometry(0.4, 0.46, 4)}
+      material={kind === "to" ? getBasicMaterial("#7fa05a", 0.85, false) : getBasicMaterial("#cbd5c0", 0.5, false)}
+    />
   );
 }
 
@@ -64,8 +66,8 @@ export function Board3D({
 
   return (
     <group>
-      {/* stone foundation slab */}
-      <mesh receiveShadow position={[0, -0.55, 0]}>
+      {/* stone foundation slab — tile columns drop onto its top (FOUNDATION_Y) */}
+      <mesh receiveShadow position={[0, -0.95, 0]}>
         <boxGeometry args={[BOARD_W + 1.4, 0.7, BOARD_H + 1.4]} />
         <meshStandardMaterial map={getStoneTexture()} color="#6a6250" roughness={1} />
       </mesh>

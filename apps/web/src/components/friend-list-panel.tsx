@@ -1,90 +1,112 @@
 "use client";
 
 import { useTranslation } from "@animal-chess/i18n";
+import type { Friend, FriendRequest, RoomInvite, SocialUser } from "@animal-chess/social-protocol";
 import { Button, IconButton, Input, Panel } from "@animal-chess/ui";
-import { Circle, MailPlus, Send, UserRoundPlus, X } from "lucide-react";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
-import type { FriendRequest, PresenceEntry, RoomInvite } from "@/hooks/use-online-game";
+import { Check, Circle, MessagesSquare, Send, UserRoundPlus, X } from "lucide-react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import type { PlayerIdentity } from "@/hooks/use-player-identity";
+import styles from "./friend-list-panel.module.scss";
 
-const STORAGE_KEY = "animal-chess-guest-friends";
+const SEARCH_DEBOUNCE_MS = 300;
 
 export function FriendListPanel({
   identity,
-  presence,
+  friends,
   requests,
-  acceptedFriends,
   invites,
+  dmUnread,
   roomId,
   onRequest,
-  onAcceptRequest,
+  onAddById,
+  onSearch,
+  onRespond,
+  onRemove,
   onInvite,
+  onOpenChat,
   onAcceptInvite,
   onDismissInvite
 }: {
   identity?: PlayerIdentity;
-  presence: PresenceEntry[];
+  friends: Friend[];
   requests: FriendRequest[];
-  acceptedFriends: string[];
   invites: RoomInvite[];
+  dmUnread: Record<string, number>;
   roomId?: string;
   onRequest: (username: string) => void;
-  onAcceptRequest: (requestId: string) => void;
-  onInvite: (username: string) => void;
-  onAcceptInvite: (invite: RoomInvite) => void;
-  onDismissInvite: (inviteId: string) => void;
+  onAddById: (userId: string) => void;
+  onSearch: (query: string) => Promise<SocialUser[]>;
+  onRespond: (id: string, accept: boolean) => void;
+  onRemove: (userId: string) => void;
+  onInvite: (toUserId: string) => void;
+  onOpenChat: (friend: SocialUser) => void;
+  onAcceptInvite: (roomCode: string) => void;
+  onDismissInvite: (index: number) => void;
 }) {
   const { t } = useTranslation();
-  const [friends, setFriends] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
+  const [results, setResults] = useState<SocialUser[]>([]);
+  const [searched, setSearched] = useState(false);
+  const searchSeq = useRef(0);
 
+  const friendIds = new Set(friends.map((f) => f.user.id));
+
+  // Debounced username search; a sequence guard drops stale responses.
   useEffect(() => {
-    if (!identity) return;
-    if (identity.kind === "guest") {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      queueMicrotask(() => setFriends(stored ? (JSON.parse(stored) as string[]) : []));
+    const query = draft.trim();
+    if (query.length < 2) {
+      setResults([]);
+      setSearched(false);
       return;
     }
-    fetch("/api/profile")
-      .then((response) => response.json())
-      .then((profile) => setFriends(profile.friends ?? []));
-  }, [identity]);
-
-  const persist = useCallback(
-    async (nextFriends: string[]) => {
-      setFriends(nextFriends);
-      if (!identity) return;
-      if (identity.kind === "guest") {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextFriends));
-        return;
+    const seq = ++searchSeq.current;
+    const timer = setTimeout(async () => {
+      const users = await onSearch(query);
+      if (searchSeq.current === seq) {
+        setResults(users);
+        setSearched(true);
       }
-      await fetch("/api/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ friends: nextFriends })
-      });
-    },
-    [identity]
-  );
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [draft, onSearch]);
 
-  useEffect(() => {
-    const additions = acceptedFriends.filter((friend) => !friends.includes(friend));
-    if (additions.length > 0) queueMicrotask(() => void persist([...friends, ...additions]));
-  }, [acceptedFriends, friends, persist]);
+  if (!identity) return null;
+
+  const roomInvites =
+    invites.length > 0 ? (
+      <div className={styles.roomInvites}>
+        {invites.map((invite, index) => (
+          <div key={`${invite.fromUser.id}-${invite.roomCode}`}>
+            <strong>{invite.fromUser.username}</strong>
+            <span>{t("friends.invitedToRoom", { id: invite.roomCode })}</span>
+            <Button onClick={() => onAcceptInvite(invite.roomCode)}>{t("common.join")}</Button>
+            <Button onClick={() => onDismissInvite(index)}>{t("common.skip")}</Button>
+          </div>
+        ))}
+      </div>
+    ) : null;
+
+  if (identity.kind !== "google") {
+    return (
+      <Panel className="friend-panel" icon={<UserRoundPlus />} title={t("friends.title")}>
+        <p>{t("friends.signInRequired")}</p>
+        {roomInvites}
+      </Panel>
+    );
+  }
 
   function addFriend(event: FormEvent) {
     event.preventDefault();
     const next = draft.trim();
-    if (!next || friends.includes(next)) return;
+    if (!next) return;
     onRequest(next);
     setDraft("");
   }
 
-  function removeFriend(friend: string) {
-    void persist(friends.filter((entry) => entry !== friend));
+  function addById(userId: string) {
+    onAddById(userId);
+    setDraft("");
   }
-
-  if (!identity) return null;
 
   return (
     <Panel className="friend-panel" icon={<UserRoundPlus />} title={t("friends.title")}>
@@ -92,52 +114,80 @@ export function FriendListPanel({
         <Input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder={t("friends.invitePlaceholder")}
+          placeholder={t("friends.searchPlaceholder")}
         />
-        <Button type="submit" icon={<MailPlus />} />
+        <Button type="submit" icon={<UserRoundPlus />} />
       </form>
-      {requests.length > 0 ? (
-        <div className="friend-requests">
-          {requests.map((request) => (
-            <Button key={request.id} onClick={() => onAcceptRequest(request.id)}>
-              {t("friends.accept", { name: request.fromUsername })}
-            </Button>
+      {searched ? (
+        <div className={styles.searchResults}>
+          {results.length === 0 ? <p>{t("friends.noResults")}</p> : null}
+          {results.map((user) => (
+            <span key={user.id}>
+              {user.username}
+              {friendIds.has(user.id) ? (
+                <Check aria-hidden="true" />
+              ) : (
+                <IconButton
+                  label={t("friends.add", { name: user.username })}
+                  icon={<UserRoundPlus />}
+                  onClick={() => addById(user.id)}
+                />
+              )}
+            </span>
           ))}
         </div>
       ) : null}
-      <div className="friend-list">
+      {requests.length > 0 ? (
+        <div className={styles.friendRequests}>
+          {requests.map((request) => (
+            <span key={request.id}>
+              {request.fromUser.username}
+              <IconButton
+                label={t("friends.accept", { name: request.fromUser.username })}
+                icon={<Check />}
+                onClick={() => onRespond(request.id, true)}
+              />
+              <IconButton
+                label={t("friends.decline", { name: request.fromUser.username })}
+                icon={<X />}
+                onClick={() => onRespond(request.id, false)}
+              />
+            </span>
+          ))}
+        </div>
+      ) : null}
+      <div className={styles.friendList}>
         {friends.length === 0 ? <p>{t("friends.empty")}</p> : null}
         {friends.map((friend) => (
-          <span key={friend}>
-            <Circle className={presence.some((entry) => entry.username === friend) ? "online" : ""} />
-            {friend}
-            {roomId && presence.some((entry) => entry.username === friend) ? (
+          <span key={friend.user.id}>
+            <Circle className={friend.online ? "online" : ""} />
+            {friend.user.username}
+            <span className={styles.chatButton}>
               <IconButton
-                label={t("friends.invite", { name: friend })}
+                label={t("friends.chat", { name: friend.user.username })}
+                icon={<MessagesSquare />}
+                onClick={() => onOpenChat(friend.user)}
+              />
+              {(dmUnread[friend.user.id] ?? 0) > 0 ? (
+                <em className={styles.unreadBadge}>{dmUnread[friend.user.id] > 9 ? "9+" : dmUnread[friend.user.id]}</em>
+              ) : null}
+            </span>
+            {roomId && friend.online ? (
+              <IconButton
+                label={t("friends.invite", { name: friend.user.username })}
                 icon={<Send />}
-                onClick={() => onInvite(friend)}
+                onClick={() => onInvite(friend.user.id)}
               />
             ) : null}
             <IconButton
-              label={t("friends.remove", { name: friend })}
+              label={t("friends.remove", { name: friend.user.username })}
               icon={<X />}
-              onClick={() => removeFriend(friend)}
+              onClick={() => onRemove(friend.user.id)}
             />
           </span>
         ))}
       </div>
-      {invites.length > 0 ? (
-        <div className="room-invites">
-          {invites.map((invite) => (
-            <div key={invite.id}>
-              <strong>{invite.fromUsername}</strong>
-              <span>{t("friends.invitedToRoom", { id: invite.roomId })}</span>
-              <Button onClick={() => onAcceptInvite(invite)}>{t("common.join")}</Button>
-              <Button onClick={() => onDismissInvite(invite.id)}>{t("common.skip")}</Button>
-            </div>
-          ))}
-        </div>
-      ) : null}
+      {roomInvites}
     </Panel>
   );
 }

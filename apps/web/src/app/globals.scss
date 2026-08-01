@@ -1,0 +1,449 @@
+:root {
+  color-scheme: dark;
+  --ink: #f6f1df;
+  --muted: #cbc5ac;
+  --panel: rgba(18, 29, 21, 0.86);
+  --panel-border: rgba(239, 223, 169, 0.22);
+  --gold: #e2bb61;
+  --red: #c45b42;
+  --blue: #5f8cc8;
+  --green: #7fa05a;
+  --danger: #f07a5f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: var(--font-roboto), Inter, ui-sans-serif, system-ui, sans-serif;
+  background: #10140f;
+  color: var(--ink);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  // Center icon + label and give them a consistent gap. Without this the
+  // `{icon}{children}` markup from <Button> rendered inline on the baseline,
+  // so SVG icons sat un-centered and gap-less next to the text.
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(20, 31, 21, 0.88);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+button:hover {
+  border-color: rgba(226, 187, 97, 0.58);
+  background: rgba(35, 51, 34, 0.94);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgba(226, 187, 97, 0.86);
+  outline-offset: 2px;
+}
+
+.eyebrow {
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0;
+  font-size: 12px;
+}
+
+.side-panel,
+.online-panel,
+.profile-panel,
+.guest-panel,
+.friend-panel,
+.chat-panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+}
+
+.side-panel {
+  padding: 14px;
+  display: grid;
+  gap: 14px;
+}
+
+.player-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.player-card svg {
+  width: 24px;
+}
+
+.player-card strong,
+.player-card span {
+  display: block;
+}
+
+.player-card span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.control-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.control-stack button,
+.online-panel button,
+.profile-panel button,
+.guest-panel button,
+.friend-panel button,
+.chat-panel button {
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.control-stack button.active {
+  border-color: rgba(226, 187, 97, 0.7);
+  background: rgba(226, 187, 97, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(226, 187, 97, 0.16);
+}
+
+.control-stack label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.control-stack select,
+.online-panel input,
+.profile-panel input,
+.guest-panel input,
+.friend-panel input,
+.chat-panel input {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  padding: 0 10px;
+}
+
+.brand-logo {
+  position: absolute;
+  top: -12px;
+  right: 12px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(244, 211, 130, 0.97), rgba(168, 118, 41, 0.97));
+  color: #2a1d08;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border: 2px solid rgba(255, 243, 206, 0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.brand-logo svg {
+  width: 16px;
+  height: 16px;
+}
+
+.panel-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 600;
+}
+
+.panel-title svg {
+  width: 18px;
+}
+
+.online-panel,
+.profile-panel,
+.guest-panel,
+.friend-panel,
+.chat-panel {
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.online-panel.active {
+  border-color: rgba(226, 187, 97, 0.54);
+}
+
+.online-panel p,
+.profile-panel p,
+.guest-panel p,
+.friend-panel p,
+.chat-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.panel-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.online-panel form {
+  display: grid;
+  grid-template-columns: 1fr 44px;
+  gap: 8px;
+}
+
+.guest-panel {
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.friend-panel {
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.friend-panel form,
+.chat-panel form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.chat-panel {
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+@media (max-width: 1180px) {
+  .side-panel {
+    background: transparent;
+    border: 0;
+    backdrop-filter: none;
+    padding: 0;
+  }
+  .brand-logo {
+    position: static;
+    order: -1;
+    justify-self: center;
+    margin-bottom: 4px;
+  }
+}
+
+.primary {
+  border-color: rgba(226, 187, 97, 0.8) !important;
+  background: linear-gradient(180deg, rgba(231, 196, 109, 0.95), rgba(193, 150, 64, 0.95)) !important;
+  color: #1c2114 !important;
+  font-weight: 800;
+}
+
+.primary:hover {
+  background: linear-gradient(180deg, rgba(241, 209, 126, 1), rgba(205, 162, 74, 1)) !important;
+}
+
+.menu-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    linear-gradient(180deg, rgba(6, 9, 6, 0.35), rgba(6, 9, 6, 0.86)),
+    var(--bg-image, url("/assets/jungle-backdrop.png")) center / cover fixed;
+}
+
+.menu-card {
+  width: min(440px, 100%);
+  padding: 32px 28px;
+  border-radius: 18px;
+  background: rgba(16, 24, 16, 0.82);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+  text-align: center;
+  animation: pop-in 280ms ease;
+}
+
+.menu-title {
+  margin: 4px 0 6px;
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.menu-sub {
+  margin: 0 0 22px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(4, 6, 4, 0.66);
+  backdrop-filter: blur(6px);
+  animation: fade-in 180ms ease;
+}
+
+.modal-card {
+  width: min(540px, 100%);
+  max-height: 88vh;
+  overflow: auto;
+  border-radius: 16px;
+  background: rgba(16, 24, 16, 0.96);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  animation: pop-in 220ms ease;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-head svg {
+  width: 20px;
+}
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+
+.modal-foot {
+  padding: 14px 20px;
+  border-top: 1px solid var(--panel-border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.modal-foot button {
+  min-height: 42px;
+  border-radius: 10px;
+  padding: 0 18px;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.menu-lang {
+  min-height: 34px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--panel-border);
+}
+
+/* Screen-change crossfade (View Transitions API). Skipped in JS under reduced motion; killed in CSS below. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 240ms;
+  animation-timing-function: ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+

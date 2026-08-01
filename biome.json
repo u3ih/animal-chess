@@ -15,7 +15,13 @@
       "!**/coverage",
       "!**/.data",
       "!**/*.tsbuildinfo",
-      "!**/next-env.d.ts"
+      "!**/next-env.d.ts",
+      "!**/.venv",
+      "!**/__pycache__",
+      "!**/.ruff_cache",
+      "!**/.pytest_cache",
+      "!**/.mypy_cache",
+      "!**/*.graphql"
     ]
   },
   "formatter": {
@@ -35,7 +41,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "a11y": {
         "useButtonType": "warn",
         "noStaticElementInteractions": "warn",
@@ -63,5 +69,18 @@
       "semicolons": "always",
       "trailingCommas": "none"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/web/src/components/three/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noStaticElementInteractions": "off",
+            "useKeyWithClickEvents": "off"
+          }
+        }
+      }
+    }
+  ]
 }

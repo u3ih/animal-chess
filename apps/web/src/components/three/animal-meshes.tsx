@@ -1,8 +1,20 @@
 "use client";
 
 import type { PieceKind, Player } from "@animal-chess/game-core";
-import { useEffect, useMemo } from "react";
+import { useFrame } from "@react-three/fiber";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import {
+  COLLAR_TORUS,
+  getBasicMaterial,
+  getCapsuleGeometry,
+  getConeGeometry,
+  getCylinderGeometry,
+  getStandardMaterial,
+  UNIT_BOX,
+  UNIT_SPHERE
+} from "./shared-assets";
+import { type CostumeId, DEFAULT_COSTUME, getCostume } from "./skins";
 
 /** body = main coat, belly = lighter underside/face, dark = markings/limbs. */
 const PALETTE: Record<PieceKind, { body: string; belly: string; dark: string }> = {
@@ -32,13 +44,35 @@ const RANK: Record<PieceKind, number> = {
   elephant: 8
 };
 
+/** Head-crown anchor (hat costumes) and chest anchor (body costumes), per kind. */
+const HEAD_TOP: Record<PieceKind, Vec3> = {
+  rat: [0, 0.66, 0.1],
+  cat: [0, 0.78, 0.08],
+  dog: [0, 0.78, 0.1],
+  wolf: [0, 0.84, 0.1],
+  leopard: [0, 0.8, 0.1],
+  tiger: [0, 0.84, 0.1],
+  lion: [0, 0.98, 0.06],
+  elephant: [0, 0.92, 0.1]
+};
+const CHEST: Record<PieceKind, Vec3> = {
+  rat: [0, 0.42, 0.16],
+  cat: [0, 0.46, 0.18],
+  dog: [0, 0.47, 0.2],
+  wolf: [0, 0.5, 0.2],
+  leopard: [0, 0.48, 0.2],
+  tiger: [0, 0.5, 0.2],
+  lion: [0, 0.5, 0.18],
+  elephant: [0, 0.56, 0.22]
+};
+
 type Vec3 = [number, number, number];
 
 function Ball({
   c,
   p,
   s = 1,
-  rough = 0.55,
+  rough = 0.5,
   metal = 0.03
 }: {
   c: string;
@@ -48,19 +82,19 @@ function Ball({
   metal?: number;
 }) {
   return (
-    <mesh castShadow position={p} scale={s}>
-      <sphereGeometry args={[1, 28, 22]} />
-      <meshStandardMaterial color={c} roughness={rough} metalness={metal} />
-    </mesh>
+    <mesh castShadow position={p} scale={s} geometry={UNIT_SPHERE} material={getStandardMaterial(c, rough, metal)} />
   );
 }
 
 function Cyl({ c, p, r, rot = [0, 0, 0], rough = 0.55 }: { c: string; p: Vec3; r: Vec3; rot?: Vec3; rough?: number }) {
   return (
-    <mesh castShadow position={p} rotation={rot}>
-      <cylinderGeometry args={[r[0], r[1], r[2], 18]} />
-      <meshStandardMaterial color={c} roughness={rough} metalness={0.02} />
-    </mesh>
+    <mesh
+      castShadow
+      position={p}
+      rotation={rot}
+      geometry={getCylinderGeometry(r[0], r[1], r[2])}
+      material={getStandardMaterial(c, rough, 0.02)}
+    />
   );
 }
 
@@ -80,10 +114,13 @@ function Capsule({
   rough?: number;
 }) {
   return (
-    <mesh castShadow position={p} rotation={rot}>
-      <capsuleGeometry args={[r, len, 6, 16]} />
-      <meshStandardMaterial color={c} roughness={rough} metalness={0.02} />
-    </mesh>
+    <mesh
+      castShadow
+      position={p}
+      rotation={rot}
+      geometry={getCapsuleGeometry(r, len)}
+      material={getStandardMaterial(c, rough, 0.02)}
+    />
   );
 }
 
@@ -101,10 +138,14 @@ function Box({
   rough?: number;
 }) {
   return (
-    <mesh castShadow position={p} rotation={rot}>
-      <boxGeometry args={size} />
-      <meshStandardMaterial color={c} roughness={rough} metalness={0.02} />
-    </mesh>
+    <mesh
+      castShadow
+      position={p}
+      rotation={rot}
+      scale={size}
+      geometry={UNIT_BOX}
+      material={getStandardMaterial(c, rough, 0.02)}
+    />
   );
 }
 
@@ -126,10 +167,14 @@ function Cone({
   rough?: number;
 }) {
   return (
-    <mesh castShadow position={p} rotation={rot}>
-      <coneGeometry args={[r, h, seg]} />
-      <meshStandardMaterial color={c} roughness={rough} metalness={0.02} />
-    </mesh>
+    <mesh
+      castShadow
+      position={p}
+      rotation={rot}
+      scale={[r, h, r]}
+      geometry={getConeGeometry(seg)}
+      material={getStandardMaterial(c, rough, 0.02)}
+    />
   );
 }
 
@@ -138,33 +183,45 @@ function Body({ c, s = [0.34, 0.32, 0.46], y = 0.34 }: { c: string; s?: Vec3; y?
   return <Ball c={c} p={[0, y, -0.02]} s={s} />;
 }
 
-/** Four stubby legs at the body corners, grounding the piece. */
+/** Four stubby legs at the body corners, grounding the piece, with darker paw pads. */
 function Legs({
   c,
+  pad,
   spread = 0.2,
   front = 0.2,
   h = 0.22,
   r = 0.07
 }: {
   c: string;
+  pad?: string;
   spread?: number;
   front?: number;
   h?: number;
   r?: number;
 }) {
   const ys = h / 2 + 0.04;
+  const corners: [number, number][] = [
+    [spread, front],
+    [-spread, front],
+    [spread, -front],
+    [-spread, -front]
+  ];
   return (
     <group>
-      {(
-        [
-          [spread, front],
-          [-spread, front],
-          [spread, -front],
-          [-spread, -front]
-        ] as [number, number][]
-      ).map(([x, z]) => (
+      {corners.map(([x, z]) => (
         <Capsule key={`${x}-${z}`} c={c} p={[x, ys, z]} r={r} len={h} rough={0.6} />
       ))}
+      {pad
+        ? corners.map(([x, z]) => (
+            <Ball
+              key={`pad-${x}-${z}`}
+              c={pad}
+              p={[x, 0.04, z + 0.02]}
+              s={[r * 1.05, r * 0.55, r * 1.15]}
+              rough={0.7}
+            />
+          ))
+        : null}
     </group>
   );
 }
@@ -186,21 +243,47 @@ function Snout({ c, p = [0, 0.56, 0.27], s = 0.1 }: { c: string; p?: Vec3; s?: n
 function Eye({ x, y = 0.62, z = 0.26 }: { x: number; y?: number; z?: number }) {
   return (
     <group>
-      <Ball c="#fbf7ee" p={[x, y, z]} s={0.05} rough={0.25} />
-      <mesh position={[x, y, z + 0.035]}>
-        <sphereGeometry args={[0.03, 12, 12]} />
-        <meshStandardMaterial color="#120d09" roughness={0.2} />
-      </mesh>
-      <mesh position={[x + 0.012, y + 0.014, z + 0.05]}>
-        <sphereGeometry args={[0.011, 8, 8]} />
-        <meshBasicMaterial color="#ffffff" />
-      </mesh>
+      <Ball c="#fbf7ee" p={[x, y, z]} s={0.05} rough={0.2} />
+      <mesh
+        position={[x, y, z + 0.035]}
+        scale={0.03}
+        geometry={UNIT_SPHERE}
+        material={getStandardMaterial("#120d09", 0.15, 0.03)}
+      />
+      <mesh
+        position={[x + 0.012, y + 0.014, z + 0.05]}
+        scale={0.011}
+        geometry={UNIT_SPHERE}
+        material={getBasicMaterial("#ffffff")}
+      />
+    </group>
+  );
+}
+
+/** Angled brow ridge over each eye — gives predators a fierce read. */
+function Brows({
+  c,
+  y,
+  z = 0.3,
+  x = 0.1,
+  tilt = 0.5
+}: {
+  c: string;
+  y: number;
+  z?: number;
+  x?: number;
+  tilt?: number;
+}) {
+  return (
+    <group>
+      <Box c={c} p={[-x, y, z]} size={[0.13, 0.028, 0.03]} rot={[0, 0, tilt]} rough={0.6} />
+      <Box c={c} p={[x, y, z]} size={[0.13, 0.028, 0.03]} rot={[0, 0, -tilt]} rough={0.6} />
     </group>
   );
 }
 
 function Nose({ p = [0, 0.555, 0.33], s = 0.026 }: { p?: Vec3; s?: number }) {
-  return <Ball c="#1a120e" p={p} s={s} rough={0.3} />;
+  return <Ball c="#1a120e" p={p} s={s} rough={0.25} />;
 }
 
 function Tail({ c, p, len, r = 0.045, rot }: { c: string; p: Vec3; len: number; r?: number; rot: Vec3 }) {
@@ -228,12 +311,14 @@ function AnimalGeometry({ kind }: { kind: PieceKind }) {
     case "rat":
       return (
         <group>
-          <Legs c={pal.dark} spread={0.13} front={0.13} h={0.14} r={0.045} />
+          <Legs c={pal.dark} pad={pal.dark} spread={0.13} front={0.13} h={0.14} r={0.045} />
           <Body c={pal.body} s={[0.24, 0.24, 0.34]} y={0.3} />
           <Ball c={pal.belly} p={[0, 0.2, 0.12]} s={[0.18, 0.13, 0.22]} />
           <Ball c={pal.body} p={[0, 0.5, 0.16]} s={[0.18, 0.17, 0.2]} />
           <RoundEar c={pal.belly} p={[-0.14, 0.64, 0.13]} s={0.085} />
           <RoundEar c={pal.belly} p={[0.14, 0.64, 0.13]} s={0.085} />
+          <RoundEar c="#caa090" p={[-0.14, 0.64, 0.16]} s={0.05} />
+          <RoundEar c="#caa090" p={[0.14, 0.64, 0.16]} s={0.05} />
           <Cone c={pal.belly} p={[0, 0.46, 0.34]} r={0.07} h={0.16} seg={14} rot={[Math.PI / 2, 0, 0]} />
           <Nose p={[0, 0.46, 0.42]} s={0.03} />
           <Eye x={-0.08} y={0.55} z={0.28} />
@@ -245,12 +330,18 @@ function AnimalGeometry({ kind }: { kind: PieceKind }) {
     case "cat":
       return (
         <group>
-          <Legs c={pal.dark} spread={0.16} front={0.16} h={0.18} r={0.055} />
+          <Legs c={pal.dark} pad={pal.dark} spread={0.16} front={0.16} h={0.18} r={0.055} />
           <Body c={pal.body} s={[0.28, 0.28, 0.4]} y={0.34} />
           <Ball c={pal.belly} p={[0, 0.22, 0.16]} s={[0.2, 0.15, 0.24]} />
           <Ball c={pal.body} p={[0, 0.58, 0.14]} s={[0.21, 0.2, 0.2]} />
-          <Ear c={pal.dark} p={[-0.13, 0.76, 0.1]} size={0.1} />
-          <Ear c={pal.dark} p={[0.13, 0.76, 0.1]} size={0.1} />
+          <Ear c={pal.body} p={[-0.13, 0.76, 0.1]} size={0.1} />
+          <Ear c={pal.body} p={[0.13, 0.76, 0.1]} size={0.1} />
+          <Ear c="#e8b6c0" p={[-0.13, 0.74, 0.12]} size={0.05} />
+          <Ear c="#e8b6c0" p={[0.13, 0.74, 0.12]} size={0.05} />
+          {/* tabby forehead stripes */}
+          <Box c={pal.dark} p={[0, 0.68, 0.27]} size={[0.025, 0.12, 0.02]} rough={0.7} />
+          <Box c={pal.dark} p={[-0.08, 0.67, 0.25]} size={[0.02, 0.1, 0.02]} rot={[0, 0, 0.3]} rough={0.7} />
+          <Box c={pal.dark} p={[0.08, 0.67, 0.25]} size={[0.02, 0.1, 0.02]} rot={[0, 0, -0.3]} rough={0.7} />
           <Snout c={pal.belly} p={[0, 0.55, 0.3]} s={0.11} />
           <Nose p={[0, 0.57, 0.36]} />
           <Eye x={-0.09} y={0.63} z={0.28} />
@@ -262,7 +353,7 @@ function AnimalGeometry({ kind }: { kind: PieceKind }) {
     case "dog":
       return (
         <group>
-          <Legs c={pal.dark} spread={0.18} front={0.18} h={0.2} r={0.06} />
+          <Legs c={pal.dark} pad={pal.dark} spread={0.18} front={0.18} h={0.2} r={0.06} />
           <Body c={pal.body} s={[0.3, 0.3, 0.44]} y={0.35} />
           <Ball c={pal.belly} p={[0, 0.22, 0.18]} s={[0.22, 0.16, 0.26]} />
           <Ball c={pal.body} p={[0, 0.58, 0.16]} s={[0.22, 0.21, 0.21]} />
@@ -273,21 +364,26 @@ function AnimalGeometry({ kind }: { kind: PieceKind }) {
           <Nose p={[0, 0.52, 0.45]} s={0.03} />
           <Eye x={-0.1} y={0.63} z={0.29} />
           <Eye x={0.1} y={0.63} z={0.29} />
+          {/* lolling tongue */}
+          <Box c="#e08a8a" p={[0, 0.44, 0.42]} size={[0.05, 0.09, 0.02]} rot={[0.4, 0, 0]} rough={0.5} />
           <Tail c={pal.body} p={[0, 0.5, -0.34]} len={0.3} rot={[1.0, 0, 0]} />
         </group>
       );
     case "wolf":
       return (
         <group>
-          <Legs c={pal.dark} spread={0.19} front={0.2} h={0.24} r={0.06} />
+          <Legs c={pal.dark} pad={pal.dark} spread={0.19} front={0.2} h={0.24} r={0.06} />
           <Body c={pal.body} s={[0.31, 0.31, 0.47]} y={0.37} />
           <Ball c={pal.belly} p={[0, 0.24, 0.18]} s={[0.22, 0.16, 0.28]} />
           <Ball c={pal.body} p={[0, 0.62, 0.16]} s={[0.21, 0.22, 0.21]} />
-          <Ear c={pal.dark} p={[-0.15, 0.82, 0.12]} size={0.11} tiltZ={0.12} />
-          <Ear c={pal.dark} p={[0.15, 0.82, 0.12]} size={0.11} tiltZ={0.12} />
+          <Ear c={pal.body} p={[-0.15, 0.82, 0.12]} size={0.11} tiltZ={0.12} />
+          <Ear c={pal.body} p={[0.15, 0.82, 0.12]} size={0.11} tiltZ={0.12} />
+          <Ear c={pal.dark} p={[-0.15, 0.8, 0.14]} size={0.06} tiltZ={0.12} />
+          <Ear c={pal.dark} p={[0.15, 0.8, 0.14]} size={0.06} tiltZ={0.12} />
           {/* long muzzle */}
           <Cone c={pal.belly} p={[0, 0.55, 0.34]} r={0.12} h={0.26} seg={16} rot={[Math.PI / 2, 0, 0]} />
           <Nose p={[0, 0.55, 0.47]} s={0.032} />
+          <Brows c={pal.dark} y={0.72} z={0.28} x={0.1} tilt={0.55} />
           <Eye x={-0.1} y={0.66} z={0.27} />
           <Eye x={0.1} y={0.66} z={0.27} />
           <Tail c={pal.body} p={[0, 0.45, -0.4]} len={0.4} r={0.06} rot={[0.7, 0, 0]} />
@@ -296,12 +392,12 @@ function AnimalGeometry({ kind }: { kind: PieceKind }) {
     case "leopard":
       return (
         <group>
-          <Legs c={pal.body} spread={0.19} front={0.2} h={0.24} r={0.062} />
+          <Legs c={pal.body} pad={pal.dark} spread={0.19} front={0.2} h={0.24} r={0.062} />
           <Body c={pal.body} s={[0.31, 0.3, 0.48]} y={0.37} />
           <Ball c={pal.belly} p={[0, 0.24, 0.18]} s={[0.22, 0.15, 0.3]} />
           <Ball c={pal.body} p={[0, 0.6, 0.16]} s={[0.2, 0.2, 0.2]} />
-          <Ear c={pal.dark} p={[-0.13, 0.76, 0.12]} size={0.09} />
-          <Ear c={pal.dark} p={[0.13, 0.76, 0.12]} size={0.09} />
+          <Ear c={pal.body} p={[-0.13, 0.76, 0.12]} size={0.09} />
+          <Ear c={pal.body} p={[0.13, 0.76, 0.12]} size={0.09} />
           {/* rosettes */}
           {(
             [
@@ -309,11 +405,14 @@ function AnimalGeometry({ kind }: { kind: PieceKind }) {
               [0.13, 0.46, 0.24],
               [-0.05, 0.28, 0.3],
               [0.2, 0.3, 0.18],
-              [-0.2, 0.5, 0.14]
+              [-0.2, 0.5, 0.14],
+              [0.18, 0.5, 0.12],
+              [0, 0.4, 0.31]
             ] as Vec3[]
           ).map((pp) => (
             <Ball key={`${pp[0]}-${pp[1]}-${pp[2]}`} c={pal.dark} p={pp} s={[0.04, 0.04, 0.018]} rough={0.7} />
           ))}
+          <Brows c={pal.dark} y={0.69} z={0.29} x={0.09} tilt={0.45} />
           <Snout c={pal.belly} p={[0, 0.56, 0.3]} s={0.11} />
           <Nose p={[0, 0.58, 0.36]} />
           <Eye x={-0.09} y={0.64} z={0.28} />
@@ -324,18 +423,23 @@ function AnimalGeometry({ kind }: { kind: PieceKind }) {
     case "tiger":
       return (
         <group>
-          <Legs c={pal.dark} spread={0.21} front={0.22} h={0.26} r={0.07} />
+          <Legs c={pal.body} pad={pal.dark} spread={0.21} front={0.22} h={0.26} r={0.07} />
           <Body c={pal.body} s={[0.34, 0.32, 0.5]} y={0.38} />
           <Ball c={pal.belly} p={[0, 0.24, 0.2]} s={[0.24, 0.16, 0.32]} />
           <Ball c={pal.body} p={[0, 0.62, 0.16]} s={[0.23, 0.22, 0.21]} />
-          <Ear c={pal.dark} p={[-0.16, 0.79, 0.12]} size={0.1} />
-          <Ear c={pal.dark} p={[0.16, 0.79, 0.12]} size={0.1} />
+          <RoundEar c={pal.body} p={[-0.16, 0.79, 0.1]} s={0.08} />
+          <RoundEar c={pal.body} p={[0.16, 0.79, 0.1]} s={0.08} />
+          <RoundEar c={pal.dark} p={[-0.16, 0.79, 0.13]} s={0.04} />
+          <RoundEar c={pal.dark} p={[0.16, 0.79, 0.13]} s={0.04} />
           {/* stripes */}
           <Box c={pal.dark} p={[-0.16, 0.42, 0.26]} size={[0.045, 0.3, 0.03]} rot={[0, 0, 0.3]} rough={0.7} />
           <Box c={pal.dark} p={[0.16, 0.42, 0.26]} size={[0.045, 0.3, 0.03]} rot={[0, 0, -0.3]} rough={0.7} />
           <Box c={pal.dark} p={[0, 0.66, 0.27]} size={[0.045, 0.26, 0.03]} rough={0.7} />
+          <Box c={pal.dark} p={[-0.1, 0.7, 0.24]} size={[0.03, 0.14, 0.02]} rot={[0, 0, 0.4]} rough={0.7} />
+          <Box c={pal.dark} p={[0.1, 0.7, 0.24]} size={[0.03, 0.14, 0.02]} rot={[0, 0, -0.4]} rough={0.7} />
           <Box c={pal.dark} p={[-0.28, 0.4, -0.05]} size={[0.04, 0.34, 0.03]} rot={[0, 0, 0.25]} rough={0.7} />
           <Box c={pal.dark} p={[0.28, 0.4, -0.05]} size={[0.04, 0.34, 0.03]} rot={[0, 0, -0.25]} rough={0.7} />
+          <Brows c={pal.dark} y={0.71} z={0.29} x={0.11} tilt={0.5} />
           <Snout c={pal.belly} p={[0, 0.56, 0.31]} s={0.13} />
           <Nose p={[0, 0.58, 0.39]} />
           <Eye x={-0.1} y={0.66} z={0.29} />
@@ -346,35 +450,47 @@ function AnimalGeometry({ kind }: { kind: PieceKind }) {
     case "lion":
       return (
         <group>
-          <Legs c={pal.body} spread={0.21} front={0.22} h={0.26} r={0.07} />
+          <Legs c={pal.body} pad={pal.dark} spread={0.21} front={0.22} h={0.26} r={0.07} />
           <Body c={pal.body} s={[0.35, 0.33, 0.5]} y={0.39} />
           <Ball c={pal.belly} p={[0, 0.25, 0.2]} s={[0.24, 0.16, 0.32]} />
-          {/* shaggy mane ring */}
-          <Ball c={pal.dark} p={[0, 0.62, 0.06]} s={0.34} rough={0.85} />
-          {Array.from({ length: 11 }, (_, i) => (i / 11) * Math.PI * 2).map((a) => (
-            <Ball key={a} c={pal.dark} p={[Math.cos(a) * 0.32, 0.62 + Math.sin(a) * 0.32, 0.04]} s={0.1} rough={0.85} />
+          {/* shaggy mane ring (two layers for fullness) */}
+          <Ball c={pal.dark} p={[0, 0.62, 0.06]} s={0.34} rough={0.9} />
+          {Array.from({ length: 13 }, (_, i) => (i / 13) * Math.PI * 2).map((a) => (
+            <Ball key={a} c={pal.dark} p={[Math.cos(a) * 0.33, 0.62 + Math.sin(a) * 0.33, 0.04]} s={0.11} rough={0.9} />
+          ))}
+          {Array.from({ length: 9 }, (_, i) => (i / 9) * Math.PI * 2 + 0.3).map((a) => (
+            <Ball
+              key={`m2-${a}`}
+              c="#6a451f"
+              p={[Math.cos(a) * 0.26, 0.62 + Math.sin(a) * 0.26, -0.04]}
+              s={0.09}
+              rough={0.9}
+            />
           ))}
           <Ball c={pal.body} p={[0, 0.63, 0.2]} s={[0.21, 0.2, 0.2]} />
           <RoundEar c={pal.dark} p={[-0.18, 0.78, 0.08]} s={0.07} />
           <RoundEar c={pal.dark} p={[0.18, 0.78, 0.08]} s={0.07} />
+          <Brows c="#5e3e1a" y={0.73} z={0.31} x={0.1} tilt={0.4} />
           <Snout c={pal.belly} p={[0, 0.58, 0.34]} s={0.13} />
           <Nose p={[0, 0.6, 0.42]} />
           <Eye x={-0.1} y={0.67} z={0.32} />
           <Eye x={0.1} y={0.67} z={0.32} />
           <Tail c={pal.body} p={[0, 0.42, -0.46]} len={0.46} r={0.045} rot={[0.6, 0, 0]} />
-          <Ball c={pal.dark} p={[0, 0.18, -0.66]} s={0.07} rough={0.85} />
+          <Ball c={pal.dark} p={[0, 0.18, -0.66]} s={0.07} rough={0.9} />
         </group>
       );
     case "elephant":
       return (
         <group>
-          <Legs c={pal.dark} spread={0.24} front={0.24} h={0.28} r={0.09} />
+          <Legs c={pal.dark} pad={pal.dark} spread={0.24} front={0.24} h={0.28} r={0.09} />
           <Body c={pal.body} s={[0.4, 0.4, 0.5]} y={0.42} />
           <Ball c={pal.belly} p={[0, 0.28, 0.22]} s={[0.28, 0.2, 0.32]} />
           <Ball c={pal.body} p={[0, 0.66, 0.18]} s={[0.28, 0.26, 0.24]} />
           {/* big ears */}
           <Ball c={pal.dark} p={[-0.34, 0.64, 0.1]} s={[0.18, 0.22, 0.05]} rough={0.65} />
           <Ball c={pal.dark} p={[0.34, 0.64, 0.1]} s={[0.18, 0.22, 0.05]} rough={0.65} />
+          <Ball c={pal.body} p={[-0.32, 0.64, 0.13]} s={[0.12, 0.16, 0.03]} rough={0.65} />
+          <Ball c={pal.body} p={[0.32, 0.64, 0.13]} s={[0.12, 0.16, 0.03]} rough={0.65} />
           {/* trunk */}
           <Capsule c={pal.body} p={[0, 0.5, 0.38]} r={0.075} len={0.2} rot={[Math.PI / 2.4, 0, 0]} />
           <Capsule c={pal.body} p={[0, 0.32, 0.46]} r={0.06} len={0.18} rot={[0.5, 0, 0]} />
@@ -409,7 +525,8 @@ function makeBadgeTexture(rank: number, label: string, owner: Player): THREE.Can
   const canvas = document.createElement("canvas");
   canvas.width = 256;
   canvas.height = 96;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("2d context unavailable");
   const color = OWNER_COLOR[owner];
   // pill background
   ctx.fillStyle = "rgba(10, 12, 10, 0.82)";
@@ -453,10 +570,13 @@ function Collar({ owner }: { owner: Player }) {
   const c = TEAM_SCARF[owner];
   return (
     <group>
-      <mesh castShadow position={[0, 0.46, 0.05]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.21, 0.052, 10, 24]} />
-        <meshStandardMaterial color={c} roughness={0.48} metalness={0.05} />
-      </mesh>
+      <mesh
+        castShadow
+        position={[0, 0.46, 0.05]}
+        rotation={[Math.PI / 2, 0, 0]}
+        geometry={COLLAR_TORUS}
+        material={getStandardMaterial(c, 0.48, 0.05)}
+      />
       {/* knot at the throat */}
       <Ball c={c} p={[0, 0.4, 0.25]} s={0.07} rough={0.45} />
       <Cone c={c} p={[0.04, 0.3, 0.26]} r={0.05} h={0.16} seg={4} rot={[0.4, 0, -0.3]} rough={0.45} />
@@ -465,28 +585,76 @@ function Collar({ owner }: { owner: Player }) {
   );
 }
 
-function RankBadge({ kind, owner, label }: { kind: PieceKind; owner: Player; label: string }) {
+/**
+ * Floating rank/name badge. Stays always-on-top (`depthTest:false`, never clips into neighbors) but
+ * fades out as the camera drops toward a low angle — where the badges would otherwise pile up and
+ * clutter — and back in for top-down views. The selected/hovered piece keeps its badge at full
+ * opacity via `emphasis`, so rank info is always one tap away.
+ */
+function RankBadge({
+  kind,
+  owner,
+  label,
+  emphasis,
+  reduced
+}: {
+  kind: PieceKind;
+  owner: Player;
+  label: string;
+  emphasis?: boolean;
+  reduced?: boolean;
+}) {
+  const material = useRef<THREE.SpriteMaterial>(null);
   const texture = useMemo(() => makeBadgeTexture(RANK[kind], label, owner), [kind, owner, label]);
   useEffect(() => () => texture.dispose(), [texture]);
+  useFrame(({ camera }, delta) => {
+    const m = material.current;
+    if (!m) return;
+    const len = camera.position.length() || 1;
+    // polar angle from the +Y axis: ~0.52rad at the default camera, up to maxPolarAngle 1.2 when low.
+    const polar = Math.acos(THREE.MathUtils.clamp(camera.position.y / len, -1, 1));
+    const target = emphasis ? 1 : 1 - THREE.MathUtils.smoothstep(polar, 0.62, 0.95);
+    m.opacity = reduced ? target : THREE.MathUtils.damp(m.opacity, target, 12, delta);
+  });
   return (
-    <sprite position={[0, 1.22, 0]} scale={[0.62, 0.23, 1]} renderOrder={10}>
-      <spriteMaterial map={texture} transparent depthTest={false} />
+    <sprite position={[0, 1.22, 0]} scale={[0.52, 0.2, 1]} renderOrder={10}>
+      <spriteMaterial ref={material} map={texture} transparent depthTest={false} />
     </sprite>
   );
 }
 
-/** Full piece model: base disc (team-colored), animal body, floating rank/name badge. */
+/** A mounted costume accessory at its slot anchor (hat = head crown, body = chest). */
+function Costume({ kind, owner, costumeId }: { kind: PieceKind; owner: Player; costumeId: CostumeId }) {
+  const def = getCostume(costumeId);
+  if (def.id === DEFAULT_COSTUME) return null;
+  const anchor = def.slot === "hat" ? HEAD_TOP[kind] : CHEST[kind];
+  return (
+    <group position={anchor}>
+      <def.Accessory owner={owner} />
+    </group>
+  );
+}
+
+/** Full piece model: base disc (team-colored), animal body, costume, floating rank/name badge. */
 export function AnimalModel({
   kind,
   owner,
   label,
-  showBadge = true
+  costumeId = DEFAULT_COSTUME,
+  showBadge = true,
+  badgeEmphasis,
+  reduced
 }: {
   kind: PieceKind;
   owner: Player;
   /** Localized piece name baked into the badge — passed in (i18n context doesn't cross the Canvas). */
   label: string;
+  /** Equipped costume id (shop). Defaults to the bare look. */
+  costumeId?: CostumeId;
   showBadge?: boolean;
+  /** Keep this piece's badge at full opacity regardless of camera angle (selected/hovered). */
+  badgeEmphasis?: boolean;
+  reduced?: boolean;
 }) {
   return (
     <group>
@@ -495,7 +663,10 @@ export function AnimalModel({
       <Cyl c="#1d241b" p={[0, -0.13, 0]} r={[0.4, 0.42, 0.05]} />
       <AnimalGeometry kind={kind} />
       <Collar owner={owner} />
-      {showBadge ? <RankBadge kind={kind} owner={owner} label={label} /> : null}
+      <Costume kind={kind} owner={owner} costumeId={costumeId} />
+      {showBadge ? (
+        <RankBadge kind={kind} owner={owner} label={label} emphasis={badgeEmphasis} reduced={reduced} />
+      ) : null}
     </group>
   );
 }

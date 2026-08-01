@@ -9,10 +9,11 @@ import { tileToWorld } from "./coords";
 const TEAM: Record<Player, string> = { red: "#ffb066", blue: "#67b6ff" };
 
 /** Soft additive light shaft rising from a den to mark the goal cell. */
-export function DenBeam({ pos, owner }: { pos: Position; owner: Player }) {
+export function DenBeam({ pos, owner, reduced }: { pos: Position; owner: Player; reduced?: boolean }) {
   const ref = useRef<THREE.Mesh>(null);
   const [wx, , wz] = tileToWorld(pos);
   useFrame((s) => {
+    if (reduced) return; // hold a static opacity under prefers-reduced-motion
     const m = ref.current?.material as THREE.MeshBasicMaterial | undefined;
     if (m) m.opacity = 0.16 + Math.sin(s.clock.elapsedTime * 1.6) * 0.07;
   });

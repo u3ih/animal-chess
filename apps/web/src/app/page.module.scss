@@ -1,0 +1,337 @@
+/* Co-located styles for the main game page. Moved verbatim from globals.scss. */
+.gameShell {
+  min-height: 100vh;
+  padding: 20px;
+  background:
+    linear-gradient(180deg, rgba(6, 9, 6, 0.28), rgba(6, 9, 6, 0.82)),
+    var(--bg-image, url("/assets/jungle-backdrop.png")) center / cover fixed;
+}
+
+.topbar,
+.arena {
+  max-width: 1680px;
+  margin: 0 auto;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  gap: 16px;
+}
+
+.topbar h1,
+.topbar p {
+  margin: 0;
+}
+
+.topbar h1 {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.topbarActions {
+  display: flex;
+  gap: 8px;
+}
+
+.topbarActions button {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+}
+
+.footerBar {
+  margin: 18px auto 0;
+}
+
+.footerFaceoff {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(30, 43, 30, 0.94), rgba(13, 21, 13, 0.94));
+  border: 2px solid rgba(226, 187, 97, 0.4);
+}
+
+.faceoffSide {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.faceoffSide.foe {
+  flex-direction: row-reverse;
+}
+
+.faceoffAvatar {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.faceoffSide.red .faceoffAvatar {
+  border-color: rgba(196, 91, 66, 0.85);
+}
+
+.faceoffSide.blue .faceoffAvatar {
+  border-color: rgba(95, 140, 200, 0.85);
+}
+
+.faceoffAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.faceoffAvatar svg {
+  width: 16px;
+  height: 16px;
+  color: var(--ink);
+}
+
+.faceoffName {
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.faceoffVs {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--gold);
+}
+
+.arena {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+  justify-items: center;
+}
+
+/* Controls/social panels live in an off-canvas sheet at every width so the board stays flanked
+   by the rank rails (the immersive Cờ Thú match-skin). Toggled by the floating button. */
+.rails {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 60;
+  width: min(380px, 92vw);
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  overflow-y: auto;
+  padding: 16px;
+  background: rgba(10, 16, 11, 0.97);
+  border-left: 1px solid var(--panel-border);
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.55);
+  transform: translateX(105%);
+  transition: transform 0.28s ease;
+}
+
+.rails.open {
+  transform: none;
+}
+
+.railsHead {
+  position: sticky;
+  top: -16px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -16px -16px 2px;
+  padding: 12px 16px;
+  background: rgba(10, 16, 11, 0.98);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+/* bottom-left so it never collides with the move d-pad (bottom-right) */
+.drawerToggle {
+  position: fixed;
+  left: 18px;
+  bottom: 22px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: rgba(12, 18, 12, 0.82);
+  border: 1px solid rgba(255, 233, 168, 0.32);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  font-weight: 700;
+}
+
+.drawerToggle svg {
+  width: 20px;
+  height: 20px;
+  color: var(--gold);
+}
+
+.drawerScrim {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(4, 6, 4, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.drawerScrim.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.boardStage {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  /* size from viewport height, capped by the available column width (vw-based, NOT % — a
+     self-referential % here collapses the board inside the grid track on wide screens) and a hard max. */
+  --board-width: min(1260px, calc(min(100vw - 40px, 1680px) - 200px), calc((100vh - 64px) * 7 / 8));
+}
+
+.board3d {
+  position: relative;
+  width: var(--board-width);
+  height: min(94vh, calc(var(--board-width) * 1.12));
+  border-radius: 16px;
+  overflow: hidden;
+  background: radial-gradient(120% 120% at 50% 18%, rgba(54, 74, 38, 0.5), rgba(8, 12, 8, 0.62));
+  border: 1px solid var(--panel-border);
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.45),
+    0 24px 60px rgba(0, 0, 0, 0.45);
+  touch-action: none;
+}
+
+.board3d canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* direction pad: floats at the viewport corner while a piece is selected, so it's
+   always thumb-reachable even when the large board scrolls past the fold. */
+.boardDpad {
+  position: fixed;
+  right: 26px;
+  bottom: 26px;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  grid-template-rows: repeat(3, 44px);
+  gap: 6px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 233, 168, 0.28);
+  background: rgba(12, 18, 12, 0.66);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  animation: dpad-in 0.18s ease-out;
+}
+
+@keyframes dpad-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.94);
+  }
+}
+
+.boardDpad button {
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    transform 0.08s ease;
+}
+
+.boardDpad button:hover:not(:disabled) {
+  background: rgba(231, 196, 109, 0.32);
+  color: #1c2114;
+}
+
+.boardDpad button:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.boardDpad button:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.boardDpad svg {
+  width: 22px;
+  height: 22px;
+}
+
+.boardDpad .dpadUp {
+  grid-area: 1 / 2;
+}
+
+.boardDpad .dpadLeft {
+  grid-area: 2 / 1;
+}
+
+.boardDpad .dpadRight {
+  grid-area: 2 / 3;
+}
+
+.boardDpad .dpadDown {
+  grid-area: 3 / 2;
+}
+
+.boardDpad .dpadCore {
+  grid-area: 2 / 2;
+  display: grid;
+  place-items: center;
+  color: var(--gold);
+}
+
+@media (max-width: 1180px) {
+  .arena { grid-template-columns: 1fr; }
+  .boardStage { overflow-x: visible; --board-width: min(900px, calc(100vw - 40px)); }
+  .board3d { width: var(--board-width); height: min(80vh, calc(var(--board-width) * 1.18)); }
+  .rails { top: auto; left: 0; right: 0; width: auto; max-height: 86vh; border-left: 0; border-top: 1px solid var(--panel-border); border-radius: 18px 18px 0 0; box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.55); transform: translateY(105%); }
+  .rails.open { transform: none; }
+}
+@media (max-width: 720px) {
+  .gameShell { padding: 12px; }
+  .boardStage { --board-width: calc(100vw - 24px); }
+  .board3d { height: 72vh; }
+  .topbar { align-items: flex-start; }
+  .topbar h1 { font-size: 28px; }
+}

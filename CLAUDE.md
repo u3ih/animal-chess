@@ -5,17 +5,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-pnpm install                 # bootstrap (Node >=20, pnpm@11.7.0)
+pnpm install                 # bootstrap (Node >=26, pnpm@11.7.0)
 cp apps/web/.env.example apps/web/.env.local   # then fill Google OAuth + NextAuth secrets
 
 pnpm dev          # web dev server — runs `tsx server.ts`, NOT `next dev` (see below)
 pnpm build        # turbo run build (only @animal-chess/web has a build; packages ship as source)
 pnpm start        # production: NODE_ENV=production tsx server.ts
-pnpm test         # turbo run test (game-core vitest only)
+pnpm test         # turbo run test (game-core vitest + services/api pytest)
 pnpm typecheck    # tsc --noEmit across all packages
-pnpm lint         # biome check .
+pnpm lint         # biome check . (TS/JS/JSON; Python uses ruff via services/api)
 pnpm lint:fix     # biome check --write .
 pnpm format       # biome format --write .
+```
+
+Online play needs **three processes**: Node game server (`:3000`), the Python GraphQL backend
+(`services/api`, `:8000`), and Postgres + Redis. The Python backend (users/friends/rank/gamification)
+is separate — see `services/api/README.md`.
+
+```bash
+pnpm dev:infra    # docker compose up -d db redis  (Postgres :5432 + Redis :6379)
+pnpm dev:api      # uvicorn app.asgi:app  (needs a venv: cd services/api && pip install -e ".[dev]")
+pnpm migrate      # alembic upgrade head   (services/api)
+pnpm seed         # python -m app.seed     (quest + achievement definitions, idempotent)
+pnpm schema:export  # regenerate packages/social-protocol/schema.graphql from the Strawberry schema
+cd services/api && pytest   # 21 backend tests (in-memory sqlite + fakeredis, no infra needed)
 ```
 
 Single test (game-core is the only package with tests):
@@ -34,7 +47,9 @@ Visual smoke test: with a dev server up on :3000, `node apps/web/scripts/verify-
 pnpm + Turborepo monorepo. Workspaces (`apps/*`, `packages/*`):
 
 - **`packages/game-core`** (`@animal-chess/game-core`) — pure, dependency-free rules engine, AI, types, constants. The single source of truth for game logic.
-- **`packages/net-protocol`** (`@animal-chess/net-protocol`) — shared Socket.IO event + payload TypeScript contract (`ClientToServerEvents` / `ServerToClientEvents`, `RoomSnapshot`, etc.). Imports types from game-core.
+- **`packages/net-protocol`** (`@animal-chess/net-protocol`) — shared Socket.IO event + payload TypeScript contract (`ClientToServerEvents` / `ServerToClientEvents`, `RoomSnapshot`, etc.) for the **Node game socket only**. Imports types from game-core.
+- **`packages/social-protocol`** (`@animal-chess/social-protocol`) — the **GraphQL contract** for the Python backend: TypeScript types + operation documents (queries/mutations/subscriptions) mirroring `schema.graphql` (the SDL exported by `services/api`). The web client imports these.
+- **`services/api`** (`@animal-chess/api`) — **Python** FastAPI + Strawberry **GraphQL** backend (PostgreSQL + Redis) owning everything persistent + social + discovery: users, friends, ELO rank, gamification (coins/XP/level, daily-login bonus, quests, achievements), match history, presence, room invites, and the public lobby. A thin `package.json` lets turbo run its scripts; real deps live in `pyproject.toml`.
 - **`packages/i18n`** (`@animal-chess/i18n`) — framework-agnostic i18next + react-i18next setup. `vi` (default) + `en` dictionaries in `src/locales/`, a single `translation` namespace, type-safe `t()` keys (module augmentation in `src/types.ts`). The single source of truth for **all** UI copy and piece/terrain names. Reusable in a future RN app.
 - **`packages/ui`** (`@animal-chess/ui`) — web React primitives (`Button`/`IconButton`, `Input`, `Select`, `Modal`, `Panel`) as thin, `className`-passthrough wrappers over the existing CSS classes. Web-DOM only (not RN).
 - **`apps/web`** (`@animal-chess/web`) — Next.js 16 (App Router) + a custom Socket.IO server.
@@ -58,12 +73,19 @@ This engine runs in **both** the browser (AI mode) and the server (online) — n
 - **AI mode** is fully client-side ([apps/web/src/app/page.tsx](apps/web/src/app/page.tsx)): the page holds local `state`, calls `applyMove`, and schedules the AI reply with a 380 ms `setTimeout`. Undo is local (`past` stack), AI-mode only.
 - **Online mode** is server-authoritative: the client emits intent (`game:move` with `{pieceId, to}`) and the server re-validates with `isLegalMove`/`applyMove`, rejecting via `game:rejected`. The page renders `liveState = online.snapshot.state` when online, else the local `state` — most of the UI reads `liveState` so both modes share one render path.
 
-### Server state ([realtime.ts](apps/web/src/server/realtime.ts))
-All in-memory `Map`s: `rooms`, matchmaking `queue`, `presence`, `friendRequests`. **A server restart wipes all live games, rooms, and matchmaking.** Turn clocks are a single 1 s `setInterval` decrementing `room.timer` (`ROOM_SECONDS = 5 min`); hitting 0 awards the win to the opponent. Rooms hold two `PlayerSlot`s (red = creator/first, blue = joiner), chat (last 50), and a rematch vote set.
+### Server state ([realtime.ts](apps/web/src/server/realtime.ts)) — game only
+In-memory `Map`s: `rooms` + matchmaking `queue`. **A server restart wipes all live games.** Turn clocks are a single 1 s `setInterval`; hitting 0 awards the win. Rooms hold two `PlayerSlot`s, chat (last 50), a rematch set, plus capture tracking. **Social/presence/friends/invites moved to the Python backend** — `realtime.ts` no longer has those handlers. On game-over a single `finishGame(room)` funnel reports the result **exactly once** (guarded by `room.reported`; both the timeout and den/capture win paths route through it) to Python via the internal GraphQL mutation. Room lifecycle (`registerRoom`/`updateRoom`/`closeRoom`) and the match result go through [python-sync.ts](apps/web/src/server/python-sync.ts) (HMAC-signed, fire-and-forget, retried). [server.ts](apps/web/server.ts) also serves `GET /internal/rooms/snapshot` so Python can rebuild its lobby cache on startup.
+
+### Online backend split (hybrid)
+- **Node** = live game authority (move validation via game-core, clock, in-room chat, rematch, lobby room existence).
+- **Python** ([services/api](services/api)) = persistent + social + discovery via **GraphQL** (public `/graphql`, internal `/internal/graphql`). Subscriptions (presence, friend events, invites, lobby, rank/wallet/quest updates, reward toasts) fan out over Redis pub/sub.
+- The web client opens **two connections**: the Node game socket ([useOnlineGame](apps/web/src/hooks/use-online-game.ts)) and the Python GraphQL client ([useSocial](apps/web/src/hooks/use-social.ts), via [lib/gql.ts](apps/web/src/lib/gql.ts) — `fetch` for queries/mutations + `graphql-ws` for subscriptions). Both early-return under `STATIC_EXPORT` (GitHub Pages stays AI-only).
+- The engine stays the single TS source of truth: Python does **not** re-implement game rules — it only ingests finished-match results from Node.
 
 ### Identity & profiles
-- [usePlayerIdentity](apps/web/src/hooks/use-player-identity.ts): Google (NextAuth JWT, `userId` = email) **or** guest (random uuid in `localStorage`). [useOnlineGame](apps/web/src/hooks/use-online-game.ts) owns the socket and exposes all emit helpers.
-- Profiles persist to a **file**, `apps/web/.data/profiles.json`, via [profile-store.ts](apps/web/src/server/profile-store.ts) (not a DB). [/api/profile](apps/web/src/app/api/profile/route.ts) (GET/PATCH/PUT) is the only REST surface; everything else is sockets. Request bodies validated with **Valibot**.
+- [usePlayerIdentity](apps/web/src/hooks/use-player-identity.ts): Google (NextAuth JWT, `userId` = email) **or** guest (random uuid in `localStorage`).
+- **Auth across services**: Python decodes the **NextAuth v4 session JWE** with the shared `NEXTAUTH_SECRET` (`services/api/app/core/security.py` — `dir`+`A256GCM`, HKDF-derived key; pin `next-auth@4.x`). The client fetches the raw JWE from [/api/token](apps/web/src/app/api/token/route.ts) and passes it as a bearer (HTTP) / `connectionParams.authToken` (WS). **Guests are ephemeral** — no DB row, no rank/rewards (anti-farm). Any guest in a match makes it unranked and awards nothing to anyone.
+- **Profiles now live in Postgres** (Python), not `apps/web/.data/profiles.json`. The legacy `profile-store.ts` + `/api/profile` route are superseded by the GraphQL `me`/`updateUsername`/`friends` operations (username rules ported to `services/api/app/services/validation.py`).
 
 ## Conventions
 - **Biome** (not ESLint/Prettier): 2-space indent, line width 120, double quotes, semicolons, no trailing commas. Run `pnpm lint:fix` before finishing.

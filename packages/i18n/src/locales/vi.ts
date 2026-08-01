@@ -36,8 +36,10 @@ const vi = {
     eyebrow: "Dou Shou Qi",
     title: "Animal Chess",
     backToMenu: "Về menu",
+    faceoff: "Đối đầu",
     rules: "Luật chơi",
     toggleSound: "Bật tắt âm thanh",
+    toggleHaptics: "Bật tắt rung",
     signOut: "Đăng xuất",
     exitGuest: "Thoát guest",
     signInGoogle: "Đăng nhập Google",
@@ -122,7 +124,24 @@ const vi = {
     quickMatch: "Ghép nhanh",
     cancelMatch: "Hủy tìm trận",
     roomCodePlaceholder: "Nhập mã phòng",
-    rematch: "Rematch"
+    rematch: "Rematch",
+    shareLink: "Chia sẻ",
+    copied: "Đã chép!"
+  },
+  room: {
+    title: "Phòng chờ",
+    you: "Bạn",
+    host: "Chủ phòng",
+    ready: "Sẵn sàng",
+    cancelReady: "Hủy sẵn sàng",
+    readyTag: "Đã sẵn sàng",
+    notReadyTag: "Chưa sẵn sàng",
+    start: "Bắt đầu",
+    startHint: "Chờ đối thủ vào phòng và bấm sẵn sàng.",
+    waitingOpponent: "Đang chờ đối thủ…",
+    waitingHostStart: "Đang chờ chủ phòng bắt đầu…",
+    leave: "Rời phòng",
+    disconnected: "Mất kết nối"
   },
   onlineStatus: {
     disconnected: "Chưa kết nối",
@@ -136,7 +155,16 @@ const vi = {
   chat: {
     title: "Chat",
     empty: "Chưa có tin nhắn",
-    placeholder: "Nhắn trong phòng"
+    placeholder: "Nhắn trong phòng",
+    quickLabel: "Nhắn nhanh",
+    quick: {
+      gg: "Hay lắm!",
+      nice: "Nước hay!",
+      oops: "Ối!",
+      hurry: "Nhanh lên nào!",
+      close: "Sát nút!",
+      gl: "Chúc may mắn!"
+    }
   },
   profile: {
     title: "Hồ sơ",
@@ -148,14 +176,95 @@ const vi = {
     namePlaceholder: "Tên khách",
     play: "Vào chơi"
   },
+  login: {
+    title: "Chào mừng bạn",
+    subtitle: "Đăng nhập để chơi online, hoặc vào nhanh với tư cách khách.",
+    google: "Đăng nhập với Google",
+    or: "hoặc",
+    guestPlaceholder: "Tên hiển thị",
+    guestCta: "Vào với tư cách khách",
+    loading: "Đang tải…"
+  },
   friends: {
     title: "Bạn bè",
     invitePlaceholder: "Gửi lời mời",
+    searchPlaceholder: "Tìm người chơi theo tên",
+    add: "Kết bạn {{name}}",
+    noResults: "Không tìm thấy người chơi nào",
+    requestSent: "Đã gửi lời mời",
     accept: "Chấp nhận {{name}}",
+    decline: "Từ chối {{name}}",
     empty: "Chưa có bạn bè",
     invite: "Mời {{name}}",
     remove: "Xóa {{name}}",
-    invitedToRoom: "mời vào phòng {{id}}"
+    chat: "Nhắn tin với {{name}}",
+    invitedToRoom: "mời vào phòng {{id}}",
+    signInRequired: "Đăng nhập Google để dùng danh sách bạn bè."
+  },
+  dm: {
+    title: "Nhắn riêng",
+    placeholder: "Nhắn cho {{name}}",
+    empty: "Chưa có tin nhắn nào. Chào {{name}} một câu nhé!",
+    send: "Gửi",
+    close: "Đóng hộp thoại"
+  },
+  lobby: {
+    title: "Sảnh chờ",
+    heading: "Sảnh chờ online",
+    back: "Quay lại",
+    refresh: "Làm mới",
+    empty: "Chưa có phòng nào đang mở."
+  },
+  rank: {
+    tier: "Bậc",
+    ladderTitle: "Thang hạng",
+    ladderOpen: "Xem thang hạng",
+    ladderHint: "Phần thưởng nhận một lần khi lần đầu đạt hạng (tính theo ELO đỉnh).",
+    floor: "Từ {{elo}} ELO",
+    startTier: "Hạng khởi đầu",
+    reached: "Đã đạt",
+    current: "Hạng hiện tại"
+  },
+  tier: {
+    bronze: "Đồng",
+    silver: "Bạc",
+    gold: "Vàng",
+    platinum: "Bạch kim",
+    diamond: "Kim cương",
+    master: "Cao thủ",
+    grandmaster: "Đại cao thủ"
+  },
+  gamification: {
+    title: "Phần thưởng",
+    coins: "Xu",
+    level: "Cấp",
+    levelShort: "Cấp {{level}}",
+    claimDaily: "Nhận thưởng ngày",
+    claimed: "Đã nhận hôm nay",
+    streakDays: "Chuỗi {{count}} ngày"
+  },
+  toast: {
+    win: "Thắng trận",
+    loss: "Thưởng an ủi",
+    draw: "Hòa trận",
+    tierUp: "Thăng hạng {{tier}}!",
+    achievement: "Mở khóa thành tựu",
+    levelUp: "Lên cấp!",
+    quest: "Hoàn thành nhiệm vụ",
+    dismiss: "Ẩn thông báo"
+  },
+  quests: {
+    empty: "Chưa có nhiệm vụ.",
+    claim: "Nhận",
+    claimed: "Đã nhận",
+    WIN_1: "Thắng 1 ván",
+    WIN_3: "Thắng 3 ván",
+    PLAY_3: "Chơi 3 ván",
+    PLAY_5: "Chơi 5 ván",
+    STREAK_2: "Thắng 2 ván liên tiếp",
+    CAPTURE_ELEPHANT: "Ăn 1 con Voi",
+    CAPTURE_ANY_3: "Ăn 3 quân địch",
+    LOGIN_1: "Đăng nhập hôm nay"
   },
   rules: {
     ariaLabel: "Luật chơi",
@@ -188,6 +297,24 @@ const vi = {
   winReasonLong: {
     den: "tiến vào hang đối thủ",
     elimination: "ăn hết quân địch"
+  },
+  shop: {
+    open: "Cửa hàng",
+    title: "Cửa hàng trang phục",
+    choosePiece: "Chọn quân",
+    equip: "Mặc",
+    equipped: "Đang mặc",
+    buy: "Mua · {{price}}",
+    owned: "Đã sở hữu",
+    free: "Miễn phí",
+    notEnough: "Không đủ xu",
+    signInRequired: "Đăng nhập Google để mua trang phục.",
+    costumes: {
+      none: "Không",
+      strawHat: "Nón rơm",
+      goldCrown: "Vương miện vàng",
+      cape: "Áo choàng"
+    }
   },
   pieces: {
     rat: "Chuột",

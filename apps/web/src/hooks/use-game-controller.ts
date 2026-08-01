@@ -3,7 +3,6 @@
 import {
   type AiLevel,
   applyMove,
-  chooseAiMove,
   createInitialState,
   type GameState,
   legalMovesForPiece,
@@ -15,10 +14,16 @@ import {
   pieceAt
 } from "@animal-chess/game-core";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getTerrain } from "@/components/three/coords";
+import { useAiWorker } from "@/hooks/use-ai-worker";
+import { useBackgroundMusic } from "@/hooks/use-background-music";
 import { useGameAudio } from "@/hooks/use-game-audio";
+import { useHaptics } from "@/hooks/use-haptics";
 import { useOnlineGame } from "@/hooks/use-online-game";
 import { usePlayerIdentity } from "@/hooks/use-player-identity";
+import { useSocial } from "@/hooks/use-social";
+import { setClock } from "@/lib/clock-store";
+import { STATIC_EXPORT } from "@/lib/flags";
+import { withViewTransition } from "@/lib/view-transition";
 
 export type Mode = "ai" | "online";
 
@@ -44,16 +49,12 @@ const ARROW_KEY: Record<string, Dir> = {
   ArrowRight: "right"
 };
 
-function samePosition(a: Position, b: Position): boolean {
-  return a.row === b.row && a.col === b.col;
-}
-
 /**
  * All non-presentational game logic for the Home screen: local/online state, the AI loop, move
  * handling, and derived board data. Keeps `page.tsx` focused on rendering + i18n.
  */
 export function useGameController() {
-  const [screen, setScreen] = useState<"menu" | "game">("menu");
+  const [screen, setScreen] = useState<"menu" | "lobby" | "game">("menu");
   const [showRules, setShowRules] = useState(false);
   const [mode, setMode] = useState<Mode>("ai");
   const [aiLevel, setAiLevel] = useState<AiLevel>("medium");
@@ -61,11 +62,63 @@ export function useGameController() {
   const [past, setPast] = useState<GameState[]>([]);
   const [selectedPieceId, setSelectedPieceId] = useState<string>();
   const [audioEnabled, setAudioEnabled] = useState(true);
+  const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [username, setUsername] = useState<string>();
-  const [aiClock, setAiClock] = useState(MOVE_SECONDS);
   const audio = useGameAudio(audioEnabled);
+  useBackgroundMusic(screen === "game" && audioEnabled);
+  const haptics = useHaptics(hapticsEnabled);
+  const hapticsRef = useRef(haptics);
+  hapticsRef.current = haptics;
+  const requestAiMove = useAiWorker();
+
+  // Hydrate the haptics preference on mount (avoids an SSR/localStorage hydration mismatch).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setHapticsEnabled(window.localStorage.getItem("animal-chess-haptics") !== "off");
+  }, []);
+
+  function updateHaptics(next: boolean) {
+    setHapticsEnabled(next);
+    if (typeof window !== "undefined") window.localStorage.setItem("animal-chess-haptics", next ? "on" : "off");
+  }
   const { identity, signInGuest, signOutGuest } = usePlayerIdentity(username);
   const online = useOnlineGame(identity);
+  const social = useSocial(identity);
+  // Latest state, so an async AI reply can detect whether undo/reset/menu/forfeit replaced it.
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  /** Switch to online mode and join a Node room by code (lobby join / invite accept / deep link). */
+  function joinOnlineRoom(roomCode: string) {
+    withViewTransition(() => {
+      setMode("online");
+      setScreen("lobby");
+    });
+    online.joinRoom(roomCode.toUpperCase());
+  }
+
+  // Deep link: `?room=CODE` auto-joins that room once, then strips the param.
+  const deepLinkDone = useRef(false);
+  const joinOnlineRoomRef = useRef(joinOnlineRoom);
+  joinOnlineRoomRef.current = joinOnlineRoom;
+  useEffect(() => {
+    if (STATIC_EXPORT || deepLinkDone.current || typeof window === "undefined") return;
+    const code = new URLSearchParams(window.location.search).get("room");
+    if (!code) return;
+    deepLinkDone.current = true;
+    joinOnlineRoomRef.current(code);
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
+
+  // Online screen follows the room phase: lobby (browser / ready room) ↔ game (board).
+  // A vanished snapshot while on the board (opponent left / room closed) falls back to the lobby.
+  const onlinePhase = online.phase;
+  useEffect(() => {
+    if (mode !== "online") return;
+    if (onlinePhase === "playing") withViewTransition(() => setScreen("game"));
+    else if (onlinePhase === "lobby") withViewTransition(() => setScreen("lobby"));
+    else setScreen((prev) => (prev === "game" ? "lobby" : prev));
+  }, [mode, onlinePhase]);
 
   const liveState = mode === "online" && online.snapshot ? online.snapshot.state : state;
   const legalMoves = useMemo(
@@ -75,16 +128,18 @@ export function useGameController() {
   const selectedPiece = selectedPieceId ? liveState.pieces.find((piece) => piece.id === selectedPieceId) : undefined;
   const localColor = mode === "ai" ? "red" : online.localPlayer?.color;
   const canAct = liveState.status.state === "playing" && localColor === liveState.turn;
-  const captureTargets = legalMoves.filter((move) => move.capturedPieceId).length;
-  const recentMoves = liveState.history.slice(-5).reverse();
-  const inspectedPosition = selectedPiece?.position ?? liveState.lastMove?.to ?? { row: 4, col: 3 };
-  const inspectedTerrain = getTerrain(inspectedPosition);
-  const inspectedPiece = pieceAt(liveState, inspectedPosition);
-  const inspectedMove = legalMoves.find((move) => samePosition(move.to, inspectedPosition));
-  const captured = {
-    red: PIECE_ORDER.filter((kind) => !liveState.pieces.some((piece) => piece.owner === "blue" && piece.kind === kind)),
-    blue: PIECE_ORDER.filter((kind) => !liveState.pieces.some((piece) => piece.owner === "red" && piece.kind === kind))
-  };
+  // Captured trophies per side: a kind is "captured by red" when no blue piece of that kind remains.
+  const captured = useMemo(
+    () => ({
+      red: PIECE_ORDER.filter(
+        (kind) => !liveState.pieces.some((piece) => piece.owner === "blue" && piece.kind === kind)
+      ),
+      blue: PIECE_ORDER.filter(
+        (kind) => !liveState.pieces.some((piece) => piece.owner === "red" && piece.kind === kind)
+      )
+    }),
+    [liveState]
+  );
 
   // The board camera is flipped for the blue player, so flip the arrow mapping to match the screen.
   const flipDirs = localColor === "blue";
@@ -105,40 +160,50 @@ export function useGameController() {
     return out;
   }, [selectedPiece, legalMoves, flipDirs]);
 
-  // Per-move countdown: online reads the server clock, AI mode runs a local one for the human (red).
-  const moveSecondsLeft =
-    mode === "ai"
-      ? liveState.status.state === "playing" && liveState.turn === "red"
-        ? aiClock
-        : MOVE_SECONDS
-      : online.snapshot
-        ? online.timer[liveState.turn]
-        : MOVE_SECONDS;
-
-  // AI mode: count down the human's 90s per move and forfeit to blue on timeout.
+  // AI mode: count down the human's 90s per move and forfeit to blue on timeout. The clock lives in
+  // the external store (leaf BadgeClock subscribes), so ticking it never re-renders the game tree.
+  // Online mode's clock is driven by the server via `setClock` in useOnlineGame.
   // biome-ignore lint/correctness/useExhaustiveDependencies: history length drives a fresh countdown each move.
   useEffect(() => {
-    if (mode !== "ai" || state.status.state !== "playing" || state.turn !== "red") {
-      setAiClock(MOVE_SECONDS);
+    if (mode !== "ai") return;
+    if (state.status.state !== "playing" || state.turn !== "red") {
+      setClock({ red: MOVE_SECONDS, blue: MOVE_SECONDS });
       return;
     }
-    setAiClock(MOVE_SECONDS);
+    let seconds = MOVE_SECONDS;
+    setClock({ red: seconds, blue: MOVE_SECONDS });
     const id = window.setInterval(() => {
-      setAiClock((seconds) => {
-        if (seconds <= 1) {
-          window.clearInterval(id);
-          setState((current) =>
-            current.status.state === "playing" && current.turn === "red"
-              ? { ...current, status: { state: "won", winner: "blue", reason: "elimination" } }
-              : current
-          );
-          return 0;
-        }
-        return seconds - 1;
-      });
+      seconds -= 1;
+      if (seconds <= 0) {
+        window.clearInterval(id);
+        setClock({ red: 0, blue: MOVE_SECONDS });
+        setState((current) =>
+          current.status.state === "playing" && current.turn === "red"
+            ? { ...current, status: { state: "won", winner: "blue", reason: "elimination" } }
+            : current
+        );
+        return;
+      }
+      setClock({ red: seconds, blue: MOVE_SECONDS });
     }, 1000);
     return () => window.clearInterval(id);
   }, [mode, state.turn, state.status.state, state.history.length]);
+
+  // Haptics mirror the sound cues. Watching `liveState` covers AI mode, your own online move, and the
+  // opponent's move uniformly. Only buzz when history grows (guards undo/reset, which shrink it).
+  const prevHistoryLen = useRef(liveState.history.length);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: hapticsRef is a stable ref; liveState covers lastMove.
+  useEffect(() => {
+    const len = liveState.history.length;
+    if (len > prevHistoryLen.current && liveState.lastMove) {
+      hapticsRef.current.move(liveState.lastMove.capturedPieceId ? "capture" : "move");
+    }
+    prevHistoryLen.current = len;
+  }, [liveState]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: hapticsRef is a stable ref.
+  useEffect(() => {
+    if (liveState.status.state === "won") hapticsRef.current.win();
+  }, [liveState.status.state]);
 
   // Latest-ref so the keyboard listener binds once but always calls the current handler.
   const moveDirRef = useRef<(dir: Dir) => void>(() => {});
@@ -160,13 +225,23 @@ export function useGameController() {
   }
 
   function startGame() {
-    if (mode === "ai") resetGame();
-    setScreen("game");
+    if (mode === "ai") {
+      withViewTransition(() => {
+        resetGame();
+        setScreen("game");
+      });
+    } else {
+      // Online: enter the lobby (room browser); the match board opens once the host starts.
+      withViewTransition(() => setScreen("lobby"));
+    }
   }
 
   function goMenu() {
-    setScreen("menu");
-    setSelectedPieceId(undefined);
+    if (mode === "online" && online.snapshot) online.leaveRoom();
+    withViewTransition(() => {
+      setScreen("menu");
+      setSelectedPieceId(undefined);
+    });
   }
 
   function undoMove() {
@@ -189,14 +264,18 @@ export function useGameController() {
     }
 
     if (mode === "ai" && next.turn === "blue") {
-      window.setTimeout(() => {
-        const reply = chooseAiMove(next, aiLevel, "blue");
+      // Think off the main thread; keep the 380ms cosmetic beat so the reply doesn't feel instant.
+      const think = requestAiMove(next, aiLevel, "blue");
+      const delay = new Promise<void>((resolve) => window.setTimeout(resolve, 380));
+      void Promise.all([think, delay]).then(([reply]) => {
         if (!reply) return;
+        // Discard a stale reply if undo/reset/menu/forfeit replaced the state while the worker thought.
+        if (stateRef.current !== next) return;
         const aiState = applyMove(next, reply);
         audio.move(aiState.lastMove?.capturedPieceId ? "capture" : "move");
         setState(aiState);
         if (aiState.status.state === "won") audio.win();
-      }, 380);
+      });
     }
   }
 
@@ -222,13 +301,19 @@ export function useGameController() {
     if (!localColor || liveState.turn !== localColor || piece.owner !== localColor) return;
     setSelectedPieceId(piece.id);
     audio.select();
+    haptics.select();
   }
 
-  // Stable identity for the board's click handler so the 3D Canvas can be memoized and won't
-  // re-render on every clock tick (which only updates `online.timer`, not the game state).
+  // Stable identity for the board's click handler so the memoized 3D Canvas / RankRail won't
+  // re-render on every clock tick (the clock lives in an external store, not the game state).
   const cellClickRef = useRef(handleCellClick);
   cellClickRef.current = handleCellClick;
   const stableCellClick = useRef((position: Position) => cellClickRef.current(position)).current;
+
+  // Stable identity so the memoized RankRail keeps its onSelect prop reference across renders.
+  const selectPieceRef = useRef(selectPiece);
+  selectPieceRef.current = selectPiece;
+  const stableSelectPiece = useRef((piece: Piece) => selectPieceRef.current(piece)).current;
 
   /** Nudge the selected piece one legal step/leap in the given on-screen direction. */
   function moveSelectedDir(dir: Dir) {
@@ -255,6 +340,9 @@ export function useGameController() {
     setAiLevel,
     audioEnabled,
     setAudioEnabled,
+    hapticsEnabled,
+    setHapticsEnabled: updateHaptics,
+    hapticsSupported: haptics.supported,
     past,
     selectedPieceId,
     // identity / online
@@ -262,6 +350,8 @@ export function useGameController() {
     signInGuest,
     signOutGuest,
     online,
+    social,
+    joinOnlineRoom,
     setUsername,
     // derived board data
     liveState,
@@ -269,23 +359,15 @@ export function useGameController() {
     selectedPiece,
     localColor,
     canAct,
-    captureTargets,
-    recentMoves,
-    inspectedPosition,
-    inspectedTerrain,
-    inspectedPiece,
-    inspectedMove,
     captured,
     dpadMoves,
-    moveSecondsLeft,
-    moveSecondsTotal: MOVE_SECONDS,
     // actions
     resetGame,
     startGame,
     goMenu,
     undoMove,
     handleCellClick: stableCellClick,
-    selectPiece,
+    selectPiece: stableSelectPiece,
     moveSelectedDir
   };
 }

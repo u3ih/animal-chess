@@ -2,8 +2,9 @@
 
 import type { Player } from "@animal-chess/game-core";
 import { useTranslation } from "@animal-chess/i18n";
-import { Button, Modal } from "@animal-chess/ui";
+import { Button, cx, Modal } from "@animal-chess/ui";
 import { Home, RefreshCw, Trophy } from "lucide-react";
+import styles from "./WinOverlay.module.scss";
 
 export function WinOverlay({
   winner,
@@ -29,15 +30,15 @@ export function WinOverlay({
       ariaLabel={t("win.ariaLabel")}
       role="alertdialog"
       backdropClassName="win-backdrop"
-      className={`win-card ${winner}`}
+      className={cx(styles.winCard, styles[winner])}
     >
-      <div className="win-trophy">
+      <div className={styles.winTrophy}>
         <Trophy />
       </div>
-      <p className="win-eyebrow">{t("win.eyebrow")}</p>
+      <p className={styles.winEyebrow}>{t("win.eyebrow")}</p>
       <h2>{t("win.title", { color: winnerLabel })}</h2>
-      <p className="win-reason">{t("win.reason", { reason: reasonLabel })}</p>
-      <div className="win-actions">
+      <p className={styles.winReason}>{t("win.reason", { reason: reasonLabel })}</p>
+      <div className={styles.winActions}>
         {mode === "online" ? (
           <Button variant="primary" onClick={onRematch} icon={<RefreshCw />}>
             {t("win.rematch")}

@@ -1,6 +1,6 @@
 import { DENS, PIECE_RANK } from "./constants";
-import { allLegalMoves, applyMove, otherPlayer } from "./engine";
-import type { GameState, Move, Player } from "./types";
+import { allLegalMoves, applyMoveUnchecked, otherPlayer } from "./engine";
+import type { GameState, Move, PieceKind, Player } from "./types";
 
 export type AiLevel = "easy" | "medium" | "hard";
 
@@ -10,13 +10,30 @@ const DEPTH_BY_LEVEL: Record<AiLevel, number> = {
   hard: 3
 };
 
+/** Value of a move's captured victim (−1 for a quiet move), used to order the search. */
+function victimValue(move: Move): number {
+  if (!move.capturedPieceId) return -1;
+  const kind = move.capturedPieceId.split("-")[1] as PieceKind;
+  return PIECE_RANK[kind] ?? 0;
+}
+
+/**
+ * Order moves so alpha-beta prunes sooner: captures first, most valuable victim first. Stable sort
+ * (spread copy) keeps the original relative order among equal-value moves.
+ */
+export function orderMoves(moves: Move[]): Move[] {
+  return [...moves].sort((a, b) => victimValue(b) - victimValue(a));
+}
+
 function distanceToEnemyDen(state: GameState, player: Player): number {
   const target = DENS[otherPlayer(player)];
-  const ownPieces = state.pieces.filter((piece) => piece.owner === player);
-  if (ownPieces.length === 0) return 0;
-  return Math.min(
-    ...ownPieces.map((piece) => Math.abs(piece.position.row - target.row) + Math.abs(piece.position.col - target.col))
-  );
+  let best = Number.POSITIVE_INFINITY;
+  for (const piece of state.pieces) {
+    if (piece.owner !== player) continue;
+    const d = Math.abs(piece.position.row - target.row) + Math.abs(piece.position.col - target.col);
+    if (d < best) best = d;
+  }
+  return best === Number.POSITIVE_INFINITY ? 0 : best;
 }
 
 function evaluate(state: GameState, perspective: Player): number {
@@ -37,13 +54,13 @@ function minimax(state: GameState, depth: number, perspective: Player, alpha: nu
   if (depth === 0 || state.status.state === "won") return evaluate(state, perspective);
 
   const maximizing = state.turn === perspective;
-  const moves = allLegalMoves(state);
+  const moves = orderMoves(allLegalMoves(state));
   if (moves.length === 0) return evaluate(state, perspective);
 
   if (maximizing) {
     let value = Number.NEGATIVE_INFINITY;
     for (const move of moves) {
-      value = Math.max(value, minimax(applyMove(state, move), depth - 1, perspective, alpha, beta));
+      value = Math.max(value, minimax(applyMoveUnchecked(state, move), depth - 1, perspective, alpha, beta));
       alpha = Math.max(alpha, value);
       if (beta <= alpha) break;
     }
@@ -52,7 +69,7 @@ function minimax(state: GameState, depth: number, perspective: Player, alpha: nu
 
   let value = Number.POSITIVE_INFINITY;
   for (const move of moves) {
-    value = Math.min(value, minimax(applyMove(state, move), depth - 1, perspective, alpha, beta));
+    value = Math.min(value, minimax(applyMoveUnchecked(state, move), depth - 1, perspective, alpha, beta));
     beta = Math.min(beta, value);
     if (beta <= alpha) break;
   }
@@ -60,20 +77,22 @@ function minimax(state: GameState, depth: number, perspective: Player, alpha: nu
 }
 
 export function chooseAiMove(state: GameState, level: AiLevel, player: Player = state.turn): Move | undefined {
-  const moves = allLegalMoves(state, player);
-  if (moves.length === 0) return undefined;
+  const rawMoves = allLegalMoves(state, player);
+  if (rawMoves.length === 0) return undefined;
 
   if (level === "easy") {
-    return moves[Math.floor(Math.random() * moves.length)];
+    return rawMoves[Math.floor(Math.random() * rawMoves.length)];
   }
 
   const depth = DEPTH_BY_LEVEL[level];
+  const moves = orderMoves(rawMoves);
+  const root = { ...state, turn: player };
   let bestMove = moves[0];
   let bestScore = Number.NEGATIVE_INFINITY;
 
   for (const move of moves) {
     const score = minimax(
-      applyMove({ ...state, turn: player }, move),
+      applyMoveUnchecked(root, move),
       depth - 1,
       player,
       Number.NEGATIVE_INFINITY,

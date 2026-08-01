@@ -1,0 +1,17 @@
+{
+  "name": "@animal-chess/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Turborepo shim for the Python GraphQL backend (services/api). Real deps live in pyproject.toml.",
+  "scripts": {
+    "dev": "uvicorn app.asgi:app --reload --host 0.0.0.0 --port ${PORT:-8000}",
+    "start": "uvicorn app.asgi:app --host 0.0.0.0 --port ${PORT:-8000}",
+    "migrate": "alembic upgrade head",
+    "makemigration": "alembic revision --autogenerate -m",
+    "seed": "python -m app.seed",
+    "schema:export": "python -m app.export_schema",
+    "test": "pytest",
+    "lint": "ruff check .",
+    "typecheck": "mypy app"
+  }
+}

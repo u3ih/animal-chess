@@ -8,6 +8,8 @@ export type PlayerIdentity = {
   userId: string;
   username: string;
   kind: "google" | "guest";
+  /** Avatar URL (Google profile photo); guests have none. */
+  avatar?: string;
 };
 
 const STORAGE_KEY = "animal-chess-guest";
@@ -25,7 +27,8 @@ export function usePlayerIdentity(usernameOverride?: string) {
       identity: {
         userId: session.user.email,
         username: usernameOverride ?? session.user.name ?? session.user.email.split("@")[0],
-        kind: "google" as const
+        kind: "google" as const,
+        avatar: session.user.image ?? undefined
       },
       signInGuest: () => undefined,
       signOutGuest: () => undefined

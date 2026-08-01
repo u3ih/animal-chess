@@ -1,0 +1,43 @@
+/* Captured-pieces HUD — a compact rank-chip row docked under each PlayerBadge corner (inside .board3d). */
+.capturedRail {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 40%;
+  pointer-events: none;
+}
+
+.you {
+  top: 66px;
+  left: 14px;
+}
+
+.foe {
+  bottom: 66px;
+  right: 14px;
+  justify-content: flex-end;
+}
+
+.chip {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* red side's trophies are captured blue pieces (cool tint); blue side's are red pieces (warm tint) */
+.red .chip {
+  background: rgba(95, 140, 200, 0.4);
+}
+
+.blue .chip {
+  background: rgba(196, 91, 66, 0.4);
+}

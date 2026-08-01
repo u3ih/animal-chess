@@ -1,0 +1,36 @@
+# Local infra for the Python backend (services/api).
+# Usage: docker compose up -d db redis   (or: pnpm dev:infra)
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: animal_chess
+      POSTGRES_PASSWORD: animal_chess
+      POSTGRES_DB: animal_chess
+    ports:
+      - "5432:5432"
+    volumes:
+      - animal_chess_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U animal_chess"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - animal_chess_redis:/data
+
+  adminer:
+    image: adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+volumes:
+  animal_chess_pg:
+  animal_chess_redis:

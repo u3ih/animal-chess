@@ -1,6 +1,6 @@
 "use client";
 
-import { PIECE_RANK, type PieceKind } from "@animal-chess/game-core";
+import type { PieceKind, Player } from "@animal-chess/game-core";
 import { useTranslation } from "@animal-chess/i18n";
 import { Button, cx, IconButton, Select } from "@animal-chess/ui";
 import {
@@ -8,8 +8,6 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  Crown,
-  Footprints,
   Headphones,
   HelpCircle,
   Home as HomeIcon,
@@ -19,57 +17,51 @@ import {
   MapPin,
   Move,
   RefreshCw,
-  ShieldAlert,
   Sparkles,
   Swords,
-  Timer,
-  Trophy,
   Undo2,
   UserRound,
+  Vibrate,
+  VibrateOff,
   Volume2,
   VolumeX,
   X
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { BoardCanvas } from "@/components/board-canvas";
 import { CapturedRail } from "@/components/captured-rail";
 import { ChatPanel } from "@/components/chat-panel";
+import { CostumeShop } from "@/components/costume-shop";
+import { DmChat } from "@/components/dm-chat";
 import { FriendListPanel } from "@/components/friend-list-panel";
-import { GuestLoginPanel } from "@/components/guest-login-panel";
+import { InGameChat } from "@/components/in-game-chat";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import { OnlinePanel } from "@/components/online-panel";
-import { PieceRoster } from "@/components/piece-roster";
+import { PlayerBadge } from "@/components/player-badge";
 import { ProfilePanel } from "@/components/profile-panel";
+import { RankLadder } from "@/components/rank-ladder";
+import { RankRail } from "@/components/rank-rail";
+import { RewardToasts } from "@/components/reward-toasts";
+import { RewardsPanel } from "@/components/rewards-panel";
+import { LobbyScreen } from "@/components/screens/LobbyScreen";
+import { LoginScreen } from "@/components/screens/LoginScreen";
 import { MenuScreen } from "@/components/screens/MenuScreen";
 import { RulesModal } from "@/components/screens/RulesModal";
 import { WinOverlay } from "@/components/screens/WinOverlay";
-import type { TerrainKind } from "@/components/three/coords";
+import { useCostumes } from "@/hooks/use-costumes";
 import { PIECE_ORDER, useGameController } from "@/hooks/use-game-controller";
-
-function BoardLoading() {
-  const { t } = useTranslation();
-  return <div className="board-loading">{t("game.boardLoading")}</div>;
-}
-
-const GameCanvas = dynamic(() => import("@/components/three/GameCanvas").then((m) => m.GameCanvas), {
-  ssr: false,
-  loading: () => <BoardLoading />
-});
-
-const TERRAIN_KEY: Record<TerrainKind, "grass" | "water" | "trapRed" | "trapBlue" | "denRed" | "denBlue"> = {
-  grass: "grass",
-  water: "water",
-  "trap-red": "trapRed",
-  "trap-blue": "trapBlue",
-  "den-red": "denRed",
-  "den-blue": "denBlue"
-};
+import { STATIC_EXPORT } from "@/lib/flags";
+import styles from "./page.module.scss";
 
 export default function Home() {
   const { t } = useTranslation();
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showShop, setShowShop] = useState(false);
+  const [showLadder, setShowLadder] = useState(false);
+  // Avoid a hydration mismatch: localStorage guest + session both resolve only on the client.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const game = useGameController();
   const {
     screen,
@@ -81,28 +73,25 @@ export default function Home() {
     setAiLevel,
     audioEnabled,
     setAudioEnabled,
+    hapticsEnabled,
+    setHapticsEnabled,
+    hapticsSupported,
     past,
     selectedPieceId,
     identity,
     signInGuest,
     signOutGuest,
     online,
+    social,
+    joinOnlineRoom,
     setUsername,
     liveState,
     legalMoves,
     selectedPiece,
     localColor,
     canAct,
-    captureTargets,
-    recentMoves,
-    inspectedPosition,
-    inspectedTerrain,
-    inspectedPiece,
-    inspectedMove,
     captured,
     dpadMoves,
-    moveSecondsLeft,
-    moveSecondsTotal,
     resetGame,
     startGame,
     goMenu,
@@ -111,41 +100,40 @@ export default function Home() {
     selectPiece,
     moveSelectedDir
   } = game;
+  const costumes = useCostumes(identity);
 
   // react-i18next returns a fresh `t` on language change, so this recomputes (and re-bakes badges) per language.
   const pieceLabels = useMemo(
     () => Object.fromEntries(PIECE_ORDER.map((kind) => [kind, t(`pieces.${kind}`)])) as Record<PieceKind, string>,
     [t]
   );
-  const turnLabel = t(liveState.turn === "red" ? "colors.red" : "colors.blue");
-  const mapAction = inspectedMove?.capturedPieceId
-    ? t("cellAction.canCapture")
-    : inspectedMove
-      ? t("cellAction.canMove")
-      : inspectedPiece
-        ? t(inspectedPiece.owner === "red" ? "cellAction.redHolds" : "cellAction.blueHolds")
-        : t("cellAction.empty");
-  const statusText = (() => {
-    if (liveState.status.state === "won") {
-      const reason = t(liveState.status.reason === "den" ? "winReason.den" : "winReason.elimination");
-      return t(liveState.status.winner === "red" ? "status.redWins" : "status.blueWins", { reason });
-    }
-    if (canAct) return t("status.yourTurn");
-    if (mode === "online" && !online.localPlayer) return t("status.joinForColor");
-    if (mode === "ai" && liveState.turn === "blue") return t("status.machineThinking");
-    return t("status.waitingOpponent");
-  })();
-  const hintText = (() => {
-    if (liveState.status.state === "won") return t("hint.won");
-    if (selectedPiece) {
-      const name: string = t(`pieces.${selectedPiece.kind}`);
-      return captureTargets
-        ? t("hint.selectedWithCaptures", { name, moves: String(legalMoves.length), captures: String(captureTargets) })
-        : t("hint.selected", { name, moves: String(legalMoves.length) });
-    }
-    if (canAct) return t("hint.yourTurn");
-    return t("hint.waiting");
-  })();
+  const activeDmFriend = social.friends.find((f) => f.user.id === social.activeDmFriendId)?.user ?? null;
+  const youColor: Player = localColor ?? "red";
+  const foeColor: Player = youColor === "red" ? "blue" : "red";
+  const youName = identity?.username ?? session?.user?.name ?? t("common.you");
+  const foeSlot = online.snapshot?.players.find((slot) => slot.color === foeColor);
+  const foeName = mode === "ai" ? t("game.machine") : (foeSlot?.username ?? t("game.opponent"));
+
+  // Hold the splash until the client resolves identity (NextAuth session + localStorage guest).
+  if (!mounted || sessionStatus === "loading") {
+    return (
+      <main className="menu-screen">
+        <div className="menu-card">
+          <p className="menu-sub">{t("login.loading")}</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Login gate: no Google session and no guest yet → force a sign-in choice before the menu.
+  if (!identity) {
+    return (
+      <>
+        <LoginScreen onGoogle={() => signIn("google")} onGuest={signInGuest} />
+        {showRules ? <RulesModal onClose={() => setShowRules(false)} /> : null}
+      </>
+    );
+  }
 
   if (screen === "menu") {
     return (
@@ -158,6 +146,29 @@ export default function Home() {
           onAiLevelChange={setAiLevel}
           onStart={startGame}
           onShowRules={() => setShowRules(true)}
+          onOpenShop={() => setShowShop(true)}
+        />
+        {showRules ? <RulesModal onClose={() => setShowRules(false)} /> : null}
+        <CostumeShop
+          open={showShop}
+          onClose={() => setShowShop(false)}
+          costumes={costumes}
+          coins={social.me?.wallet.coins ?? null}
+          isGoogle={identity?.kind === "google"}
+        />
+      </>
+    );
+  }
+
+  if (screen === "lobby") {
+    return (
+      <>
+        <LobbyScreen
+          online={online}
+          lobby={social.lobby}
+          statusLabel={t(online.status)}
+          onRefresh={social.refreshLobby}
+          onBack={goMenu}
         />
         {showRules ? <RulesModal onClose={() => setShowRules(false)} /> : null}
       </>
@@ -165,98 +176,44 @@ export default function Home() {
   }
 
   return (
-    <main className="game-shell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">{t("game.eyebrow")}</p>
-          <h1>{t("game.title")}</h1>
+    <main className={styles.gameShell}>
+      <section className={cx(styles.arena, "match-skin")}>
+        <div className="brand-logo">
+          <Sparkles aria-hidden="true" />
+          <span>{t("game.title")}</span>
         </div>
-        <div className="topbar-actions">
-          <LanguageSwitcher />
-          <IconButton label={t("game.backToMenu")} icon={<HomeIcon />} onClick={goMenu} />
-          <IconButton label={t("game.rules")} icon={<HelpCircle />} onClick={() => setShowRules(true)} />
-          <IconButton
-            label={t("game.toggleSound")}
-            icon={audioEnabled ? <Volume2 /> : <VolumeX />}
-            onClick={() => setAudioEnabled((value) => !value)}
-          />
-          {session?.user ? (
-            <IconButton label={t("game.signOut")} icon={<LogOut />} onClick={() => signOut()} />
-          ) : identity?.kind === "guest" ? (
-            <IconButton label={t("game.exitGuest")} icon={<LogOut />} onClick={signOutGuest} />
-          ) : (
-            <IconButton label={t("game.signInGoogle")} icon={<LogIn />} onClick={() => signIn("google")} />
-          )}
-        </div>
-      </header>
-
-      <section className="match-summary" aria-live="polite">
-        <div className={cx("status-pill", liveState.turn)}>
-          {liveState.status.state === "won" ? <Trophy /> : <Sparkles />}
-          <span>{statusText}</span>
-        </div>
-        <div>
-          <strong>{hintText}</strong>
-          <span>
-            {mode === "ai"
-              ? t("game.aiLevel", { level: t(`difficulty.${aiLevel}`) })
-              : online.snapshot?.id
-                ? t("game.roomLabel", { id: online.snapshot.id })
-                : t("game.onlineNoRoom")}
-          </span>
-        </div>
-      </section>
-
-      <section className="arena">
-        <section className="board-stage">
-          <div className="board-topline">
-            <div>
-              <span>{t("game.currentTurn")}</span>
-              <strong>{turnLabel}</strong>
-            </div>
-            <div>
-              <span>{t("game.movesPlayed")}</span>
-              <strong>{liveState.history.length}</strong>
-            </div>
-            <div>
-              <span>{t("game.selectedPiece")}</span>
-              <strong>{selectedPiece ? t(`pieces.${selectedPiece.kind}`) : t("game.noneSelected")}</strong>
-            </div>
-          </div>
-          <div className="map-inspector">
-            <div>
-              <span>{t("game.inspecting")}</span>
-              <strong>
-                {inspectedPosition.row + 1}-{inspectedPosition.col + 1}
-              </strong>
-            </div>
-            <div>
-              <span>{t("game.terrain")}</span>
-              <strong>{t(`terrain.${TERRAIN_KEY[inspectedTerrain]}.label`)}</strong>
-            </div>
-            <div>
-              <span>{t("game.cellState")}</span>
-              <strong>{mapAction}</strong>
-            </div>
-            <p>{t(`terrain.${TERRAIN_KEY[inspectedTerrain]}.hint`)}</p>
-          </div>
-          {liveState.status.state === "playing" ? (
-            <div className={cx("move-clock", moveSecondsLeft <= 15 && "urgent")}>
-              <Timer className="clock-icon" />
-              <span className="clock-time">{moveSecondsLeft}s</span>
-              <div className="clock-bar">
-                <div
-                  className="clock-fill"
-                  style={{ transform: `scaleX(${Math.max(0, moveSecondsLeft / moveSecondsTotal)})` }}
-                />
-              </div>
-              <span>{t("game.moveClock")}</span>
-            </div>
-          ) : null}
-          <div className="board-3d">
-            <GameCanvas
+        <RankRail
+          owner="red"
+          state={liveState}
+          selectedPieceId={selectedPieceId}
+          localColor={localColor}
+          pieceLabels={pieceLabels}
+          onSelect={selectPiece}
+        />
+        <section className={styles.boardStage}>
+          <div className={styles.board3d}>
+            <PlayerBadge
+              side="you"
+              color={youColor}
+              name={youName}
+              active={liveState.status.state === "playing" && liveState.turn === youColor}
+              avatarUrl={identity?.avatar ?? session?.user?.image}
+              icon={<UserRound />}
+            />
+            <PlayerBadge
+              side="foe"
+              color={foeColor}
+              name={foeName}
+              active={liveState.status.state === "playing" && liveState.turn === foeColor}
+              avatarUrl={foeSlot?.avatar}
+              icon={<Headphones />}
+            />
+            <CapturedRail side="you" owner={youColor} captured={captured[youColor]} />
+            <CapturedRail side="foe" owner={foeColor} captured={captured[foeColor]} />
+            <BoardCanvas
               state={liveState}
               pieceLabels={pieceLabels}
+              equippedCostumes={costumes.equipped}
               selectedPieceId={selectedPieceId}
               legalMoves={legalMoves}
               interactive={canAct}
@@ -265,10 +222,10 @@ export default function Home() {
             />
           </div>
           {selectedPiece && canAct ? (
-            <div className="board-dpad" role="toolbar" aria-label={t("game.movePad")}>
+            <div className={styles.boardDpad} role="toolbar" aria-label={t("game.movePad")}>
               <button
                 type="button"
-                className="dpad-up"
+                className={styles.dpadUp}
                 onClick={() => moveSelectedDir("up")}
                 disabled={!dpadMoves.up}
                 aria-label={t("game.moveUp")}
@@ -277,19 +234,19 @@ export default function Home() {
               </button>
               <button
                 type="button"
-                className="dpad-left"
+                className={styles.dpadLeft}
                 onClick={() => moveSelectedDir("left")}
                 disabled={!dpadMoves.left}
                 aria-label={t("game.moveLeft")}
               >
                 <ArrowLeft />
               </button>
-              <div className="dpad-core" aria-hidden="true">
+              <div className={styles.dpadCore} aria-hidden="true">
                 <Move />
               </div>
               <button
                 type="button"
-                className="dpad-right"
+                className={styles.dpadRight}
                 onClick={() => moveSelectedDir("right")}
                 disabled={!dpadMoves.right}
                 aria-label={t("game.moveRight")}
@@ -298,7 +255,7 @@ export default function Home() {
               </button>
               <button
                 type="button"
-                className="dpad-down"
+                className={styles.dpadDown}
                 onClick={() => moveSelectedDir("down")}
                 disabled={!dpadMoves.down}
                 aria-label={t("game.moveDown")}
@@ -307,51 +264,19 @@ export default function Home() {
               </button>
             </div>
           ) : null}
-          <div className="turn-banner">
-            {liveState.status.state === "won" ? (
-              <>
-                <Crown />
-                {t("game.winnerBanner", { color: t(liveState.status.winner === "red" ? "colors.red" : "colors.blue") })}
-              </>
-            ) : (
-              <>
-                <Footprints />
-                {t("game.turnBanner", { color: t(liveState.turn === "red" ? "colors.redLower" : "colors.blueLower") })}
-              </>
-            )}
-          </div>
-          <div className="move-tray">
-            <div className="panel-title">
-              <ShieldAlert />
-              {t("game.history")}
-            </div>
-            {recentMoves.length ? (
-              <ol>
-                {recentMoves.map((move, index) => {
-                  const piece = liveState.pieces.find((item) => item.id === move.pieceId);
-                  const kind = (piece?.kind ?? move.pieceId.split("-")[1]) as PieceKind;
-                  const name = kind in PIECE_RANK ? t(`pieces.${kind}`) : move.pieceId;
-                  return (
-                    <li key={`${move.pieceId}-${move.to.row}-${move.to.col}-${index}`}>
-                      <span>{name}</span>
-                      <strong>
-                        {t("game.moveEntry", {
-                          from: `${move.from.row + 1}-${move.from.col + 1}`,
-                          to: `${move.to.row + 1}-${move.to.col + 1}`
-                        })}
-                      </strong>
-                    </li>
-                  );
-                })}
-              </ol>
-            ) : (
-              <p>{t("game.noMoves")}</p>
-            )}
-          </div>
         </section>
 
-        <div className={cx("rails", drawerOpen && "open")}>
-          <div className="rails-head">
+        <RankRail
+          owner="blue"
+          state={liveState}
+          selectedPieceId={selectedPieceId}
+          localColor={localColor}
+          pieceLabels={pieceLabels}
+          onSelect={selectPiece}
+        />
+
+        <div className={cx(styles.rails, drawerOpen && styles.open)}>
+          <div className={styles.railsHead}>
             <span className="panel-title">
               <LayoutPanelLeft />
               {t("game.panelsTitle")}
@@ -359,21 +284,6 @@ export default function Home() {
             <IconButton label={t("common.close")} icon={<X />} onClick={() => setDrawerOpen(false)} />
           </div>
           <aside className="side-panel">
-            <div className="player-card red">
-              <UserRound />
-              <div>
-                <strong>{identity?.username ?? session?.user?.name ?? t("common.you")}</strong>
-                <span>{t("game.redPieces")}</span>
-              </div>
-            </div>
-            <CapturedRail owner="red" captured={captured.red} />
-            <PieceRoster
-              owner="red"
-              state={liveState}
-              selectedPieceId={selectedPieceId}
-              localColor={localColor}
-              onSelect={selectPiece}
-            />
             <div className="control-stack">
               <div className="mode-tabs" role="tablist" aria-label={t("game.modeTabs")}>
                 <Button
@@ -385,15 +295,17 @@ export default function Home() {
                 >
                   {t("game.tabMachine")}
                 </Button>
-                <Button
-                  className={cx(mode === "online" && "active")}
-                  onClick={() => setMode("online")}
-                  role="tab"
-                  aria-selected={mode === "online"}
-                  icon={<MapPin />}
-                >
-                  {t("game.tabOnline")}
-                </Button>
+                {STATIC_EXPORT ? null : (
+                  <Button
+                    className={cx(mode === "online" && "active")}
+                    onClick={() => setMode("online")}
+                    role="tab"
+                    aria-selected={mode === "online"}
+                    icon={<MapPin />}
+                  >
+                    {t("game.tabOnline")}
+                  </Button>
+                )}
               </div>
               <Select
                 label={t("menu.difficulty")}
@@ -417,72 +329,144 @@ export default function Home() {
           </aside>
 
           <aside className="side-panel">
-            <div className="player-card blue">
-              <Headphones />
-              <div>
-                <strong>{mode === "ai" ? t("game.machine") : t("game.opponent")}</strong>
-                <span>{t("game.bluePieces")}</span>
-              </div>
-            </div>
-            <CapturedRail owner="blue" captured={captured.blue} />
-            <PieceRoster
-              owner="blue"
-              state={liveState}
-              selectedPieceId={selectedPieceId}
-              localColor={localColor}
-              onSelect={selectPiece}
-            />
-            <OnlinePanel
-              active={mode === "online"}
-              onActivate={() => setMode("online")}
-              roomId={online.snapshot?.id}
-              status={t(online.status)}
-              waiting={online.status === "onlineStatus.waiting"}
-              winner={online.snapshot?.state.status.state === "won" ? online.snapshot.state.status.winner : undefined}
-              onCreateRoom={online.createRoom}
-              onJoinRoom={online.joinRoom}
-              onQuickMatch={online.quickMatch}
-              onCancelMatch={online.cancelMatch}
-              onRematch={online.rematch}
-            />
-            {identity ? (
-              <ChatPanel messages={online.snapshot?.chat ?? []} disabled={!online.snapshot} onSend={online.sendChat} />
-            ) : null}
-            <ProfilePanel onUsernameChange={setUsername} />
-            {!session?.user && !identity ? <GuestLoginPanel onSubmit={signInGuest} /> : null}
-            <FriendListPanel
-              identity={identity}
-              presence={online.presence}
-              requests={online.friendRequests}
-              acceptedFriends={online.acceptedFriends}
-              invites={online.invites}
-              roomId={online.snapshot?.id}
-              onRequest={online.sendFriendRequest}
-              onAcceptRequest={online.acceptFriendRequest}
-              onInvite={online.inviteToRoom}
-              onAcceptInvite={online.acceptInvite}
-              onDismissInvite={online.dismissInvite}
-            />
+            {STATIC_EXPORT ? null : (
+              <>
+                {identity ? (
+                  <ChatPanel
+                    messages={online.snapshot?.chat ?? []}
+                    disabled={!online.snapshot}
+                    onSend={online.sendChat}
+                  />
+                ) : null}
+                <ProfilePanel
+                  me={social.me}
+                  onRename={social.updateUsername}
+                  onUsernameChange={setUsername}
+                  onOpenLadder={() => setShowLadder(true)}
+                />
+                {session?.user ? (
+                  <RewardsPanel
+                    dailyStatus={social.dailyStatus}
+                    quests={social.quests}
+                    onClaimDaily={() => void social.claimDaily()}
+                    onClaimQuest={social.claimQuest}
+                  />
+                ) : null}
+                <FriendListPanel
+                  identity={identity}
+                  friends={social.friends}
+                  requests={social.requests}
+                  invites={social.invites}
+                  dmUnread={social.dmUnread}
+                  roomId={online.snapshot?.id}
+                  onRequest={social.sendFriendRequest}
+                  onAddById={social.sendFriendRequestTo}
+                  onSearch={social.searchUsers}
+                  onRespond={social.respondFriendRequest}
+                  onRemove={social.removeFriend}
+                  onInvite={(toUserId) => online.snapshot?.id && social.sendRoomInvite(toUserId, online.snapshot.id)}
+                  onOpenChat={(user) => void social.openDm(user.id)}
+                  onAcceptInvite={joinOnlineRoom}
+                  onDismissInvite={social.dismissInvite}
+                />
+              </>
+            )}
           </aside>
         </div>
 
         <button
           type="button"
-          className={cx("drawer-scrim", drawerOpen && "open")}
+          className={cx(styles.drawerScrim, drawerOpen && styles.open)}
           aria-hidden="true"
           tabIndex={-1}
           onClick={() => setDrawerOpen(false)}
         />
         <button
           type="button"
-          className="drawer-toggle"
+          className={styles.drawerToggle}
           aria-expanded={drawerOpen}
           onClick={() => setDrawerOpen((value) => !value)}
         >
           <LayoutPanelLeft />
           <span>{t("game.panelsTitle")}</span>
         </button>
+
+        {!STATIC_EXPORT && mode === "online" && online.snapshot ? (
+          <InGameChat
+            messages={online.snapshot.chat}
+            disabled={false}
+            onSend={online.sendChat}
+            selfId={identity.userId}
+          />
+        ) : null}
+        {!STATIC_EXPORT && activeDmFriend ? (
+          <DmChat
+            friend={activeDmFriend}
+            messages={social.dmThreads[activeDmFriend.id] ?? []}
+            meId={social.me?.user.id ?? null}
+            onSend={(body) => activeDmFriend && void social.sendDm(activeDmFriend.id, body)}
+            onClose={social.closeDm}
+          />
+        ) : null}
+        {STATIC_EXPORT ? null : <RewardToasts toasts={social.toasts} onDismiss={social.dismissToast} />}
       </section>
+
+      <footer className={cx(styles.topbar, styles.footerBar)}>
+        <p className="eyebrow">{t("game.eyebrow")}</p>
+        <div className={styles.topbarActions}>
+          <LanguageSwitcher />
+          {mode === "online" && foeSlot ? (
+            // biome-ignore lint/a11y/useSemanticElements: visual grouping; <fieldset> would break the flex layout and need a legend
+            <div className={styles.footerFaceoff} role="group" aria-label={t("game.faceoff")}>
+              <span className={cx(styles.faceoffSide, styles[youColor])}>
+                <span className={styles.faceoffAvatar}>
+                  {(identity?.avatar ?? session?.user?.image) ? (
+                    // biome-ignore lint/performance/noImgElement: remote avatar on static export; next/image optimization is off
+                    <img src={identity?.avatar ?? session?.user?.image ?? ""} alt="" referrerPolicy="no-referrer" />
+                  ) : (
+                    <UserRound />
+                  )}
+                </span>
+                <span className={styles.faceoffName}>{youName}</span>
+              </span>
+              <Swords className={styles.faceoffVs} aria-hidden="true" />
+              <span className={cx(styles.faceoffSide, styles[foeColor])}>
+                <span className={styles.faceoffAvatar}>
+                  {foeSlot?.avatar ? (
+                    // biome-ignore lint/performance/noImgElement: remote avatar on static export; next/image optimization is off
+                    <img src={foeSlot.avatar} alt="" referrerPolicy="no-referrer" />
+                  ) : (
+                    <Headphones />
+                  )}
+                </span>
+                <span className={styles.faceoffName}>{foeName}</span>
+              </span>
+            </div>
+          ) : (
+            <IconButton label={t("game.backToMenu")} icon={<HomeIcon />} onClick={goMenu} />
+          )}
+          <IconButton label={t("game.rules")} icon={<HelpCircle />} onClick={() => setShowRules(true)} />
+          <IconButton
+            label={t("game.toggleSound")}
+            icon={audioEnabled ? <Volume2 /> : <VolumeX />}
+            onClick={() => setAudioEnabled((value) => !value)}
+          />
+          {hapticsSupported ? (
+            <IconButton
+              label={t("game.toggleHaptics")}
+              icon={hapticsEnabled ? <Vibrate /> : <VibrateOff />}
+              onClick={() => setHapticsEnabled(!hapticsEnabled)}
+            />
+          ) : null}
+          {STATIC_EXPORT ? null : session?.user ? (
+            <IconButton label={t("game.signOut")} icon={<LogOut />} onClick={() => signOut()} />
+          ) : identity?.kind === "guest" ? (
+            <IconButton label={t("game.exitGuest")} icon={<LogOut />} onClick={signOutGuest} />
+          ) : (
+            <IconButton label={t("game.signInGoogle")} icon={<LogIn />} onClick={() => signIn("google")} />
+          )}
+        </div>
+      </footer>
 
       {liveState.status.state === "won" ? (
         <WinOverlay
@@ -495,6 +479,7 @@ export default function Home() {
         />
       ) : null}
       {showRules ? <RulesModal onClose={() => setShowRules(false)} /> : null}
+      {showLadder ? <RankLadder me={social.me} onClose={() => setShowLadder(false)} /> : null}
     </main>
   );
 }

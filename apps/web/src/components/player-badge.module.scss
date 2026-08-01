@@ -1,0 +1,105 @@
+/* Corner portrait badge (Cờ Thú match-skin). Was `.player-badge*` in globals.scss. */
+.playerBadge {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(64%, 240px);
+  padding: 6px 16px 6px 6px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(30, 43, 30, 0.94), rgba(13, 21, 13, 0.94));
+  border: 2px solid rgba(226, 187, 97, 0.4);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.playerBadge.you {
+  top: 14px;
+  left: 14px;
+}
+
+.playerBadge.foe {
+  bottom: 14px;
+  right: 14px;
+  flex-direction: row-reverse;
+  padding: 6px 6px 6px 16px;
+}
+
+.playerBadge.active {
+  border-color: var(--gold);
+  box-shadow:
+    0 0 0 2px rgba(226, 187, 97, 0.45),
+    0 8px 26px rgba(0, 0, 0, 0.5);
+}
+
+.badgeAvatar {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.playerBadge.red .badgeAvatar {
+  border-color: rgba(196, 91, 66, 0.85);
+}
+
+.playerBadge.blue .badgeAvatar {
+  border-color: rgba(95, 140, 200, 0.85);
+}
+
+.badgeAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.badgeAvatar svg {
+  width: 22px;
+  height: 22px;
+  color: var(--ink);
+}
+
+.badgeMeta {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.playerBadge.foe .badgeMeta {
+  text-align: right;
+}
+
+.badgeMeta strong {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badgeClock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.playerBadge.foe .badgeClock {
+  flex-direction: row-reverse;
+}
+
+.badgeClock svg {
+  width: 13px;
+  height: 13px;
+}
+
+.badgeClock.urgent {
+  color: var(--danger);
+  font-weight: 800;
+}

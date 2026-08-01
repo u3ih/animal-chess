@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" role="img" aria-label="Animal Chess">
+  <title>Animal Chess</title>
+  <rect width="32" height="32" rx="7" fill="#1f6b3a"/>
+  <g fill="#f4e3b2">
+    <ellipse cx="16" cy="20.5" rx="6.2" ry="5"/>
+    <circle cx="8.5" cy="12.5" r="2.6"/>
+    <circle cx="13.2" cy="8.5" r="2.6"/>
+    <circle cx="18.8" cy="8.5" r="2.6"/>
+    <circle cx="23.5" cy="12.5" r="2.6"/>
+  </g>
+</svg>

@@ -1,0 +1,101 @@
+/* Vertical rank rail flanking the board (Cờ Thú side column). Was `.rank-*` in globals.scss. */
+.rankRail {
+  align-self: center;
+  display: grid;
+  gap: 6px;
+  width: 50px;
+  padding: 8px 6px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(64, 45, 26, 0.92), rgba(38, 26, 15, 0.94));
+  border: 1px solid rgba(226, 187, 97, 0.34);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 12px 32px rgba(0, 0, 0, 0.42);
+}
+
+.rankCell {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  min-height: 0;
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.rankNum {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff7e6;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+}
+
+/* names hidden — board pieces already carry labels; rail stays a thin rank/captured strip */
+.rankName {
+  display: none;
+}
+
+.rankRail.red .rankNum {
+  background: radial-gradient(circle at 35% 30%, #db7a5f, #a8402c);
+}
+
+.rankRail.blue .rankNum {
+  background: radial-gradient(circle at 35% 30%, #7aa7e0, #3f6bb0);
+}
+
+.rankCell.selected {
+  border-color: var(--gold);
+  background: rgba(226, 187, 97, 0.18);
+  box-shadow: 0 0 0 1px var(--gold);
+}
+
+.rankCell.defeated {
+  opacity: 0.32;
+  filter: grayscale(0.7);
+}
+
+.rankCell:disabled {
+  cursor: default;
+}
+
+.rankCell:disabled:not(.selected):hover {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.045);
+  transform: none;
+}
+
+.rankMoves {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--gold);
+  color: #1c2114;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/* Responsive: rails lie flat above/below the board so they don't steal board width.
+   Co-located from the old global `@media (max-width:1180px)` block. */
+@media (max-width: 1180px) {
+  .rankRail {
+    align-self: auto;
+    width: var(--board-width);
+    max-width: 100%;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+}

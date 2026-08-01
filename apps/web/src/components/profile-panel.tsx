@@ -1,44 +1,68 @@
 "use client";
 
 import { useTranslation } from "@animal-chess/i18n";
+import type { Me } from "@animal-chess/social-protocol";
 import { Button, Input, Panel } from "@animal-chess/ui";
-import { UserCog } from "lucide-react";
+import { Coins, Trophy, UserCog } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { type FormEvent, useEffect, useState } from "react";
+import { TierBadge } from "@/components/tier-badge";
 
-export function ProfilePanel({ onUsernameChange }: { onUsernameChange?: (username: string) => void }) {
+export function ProfilePanel({
+  me,
+  onRename,
+  onUsernameChange,
+  onOpenLadder
+}: {
+  me: Me | null;
+  onRename: (username: string) => Promise<boolean>;
+  onUsernameChange?: (username: string) => void;
+  onOpenLadder?: () => void;
+}) {
   const { t } = useTranslation();
   const { data: session } = useSession();
   const [username, setUsername] = useState("");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (!session?.user) return;
-    fetch("/api/profile")
-      .then((response) => response.json())
-      .then((profile) => {
-        setUsername(profile.username ?? "");
-        onUsernameChange?.(profile.username ?? "");
-      });
-  }, [session, onUsernameChange]);
+    if (me?.user.username) {
+      setUsername(me.user.username);
+      onUsernameChange?.(me.user.username);
+    }
+  }, [me?.user.username, onUsernameChange]);
 
   async function save(event: FormEvent) {
     event.preventDefault();
-    const response = await fetch("/api/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username })
-    });
-    setSaved(response.ok);
-    if (response.ok) onUsernameChange?.(username);
+    const ok = await onRename(username);
+    setSaved(ok);
+    if (ok) onUsernameChange?.(username);
   }
 
   if (!session?.user) return null;
 
   return (
-    <Panel as="form" className="profile-panel" onSubmit={save} icon={<UserCog />} title={t("profile.title")}>
-      <Input value={username} onChange={(event) => setUsername(event.target.value)} />
-      <Button type="submit">{saved ? t("profile.saved") : t("profile.save")}</Button>
+    <Panel className="profile-panel" icon={<UserCog />} title={t("profile.title")}>
+      <form onSubmit={save}>
+        <Input value={username} onChange={(event) => setUsername(event.target.value)} />
+        <Button type="submit">{saved ? t("profile.saved") : t("profile.save")}</Button>
+      </form>
+      {me ? (
+        <div className="profile-stats">
+          <TierBadge tier={me.rating?.tier ?? "BRONZE"} division={me.rating?.division} />
+          <span title={t("gamification.coins")}>
+            <Coins />
+            {me.wallet.coins}
+          </span>
+          <span title={t("gamification.level")}>
+            {t("gamification.levelShort", { level: String(me.wallet.level) })}
+          </span>
+          {onOpenLadder ? (
+            <Button icon={<Trophy />} onClick={onOpenLadder}>
+              {t("rank.ladderOpen")}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
     </Panel>
   );
 }

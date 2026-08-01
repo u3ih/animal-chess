@@ -1,0 +1,149 @@
+/* ============ login screen ============ */
+.loginScreen :global(.menu-card) {
+  width: min(420px, 100%);
+  padding: 34px 30px 30px;
+  position: relative;
+  background:
+    radial-gradient(130% 90% at 50% -20%, rgba(226, 187, 97, 0.16), transparent 62%),
+    rgba(16, 24, 16, 0.86);
+  border-color: rgba(239, 223, 169, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 1px 0 rgba(226, 187, 97, 0.1),
+    0 36px 90px rgba(0, 0, 0, 0.62);
+}
+
+/* gold hairline accent across the top edge of the card */
+.loginScreen :global(.menu-card)::before {
+  content: "";
+  position: absolute;
+  inset: 0 28px auto 28px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(226, 187, 97, 0.75), transparent);
+}
+
+.loginScreen :global(.menu-toolbar) {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.loginLogo {
+  justify-content: center;
+  filter: drop-shadow(0 8px 22px rgba(226, 187, 97, 0.4));
+}
+
+.loginScreen :global(.menu-title) {
+  font-size: 42px;
+  background: linear-gradient(180deg, #fff7e2 0%, #e2bb61 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.loginScreen :global(.menu-sub) {
+  max-width: 34ch;
+  margin-inline: auto;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.loginGoogle {
+  width: 100%;
+  min-height: 52px;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 12px 30px rgba(193, 150, 64, 0.38);
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    filter 140ms ease;
+
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.loginGoogle:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 16px 38px rgba(193, 150, 64, 0.48);
+}
+
+.loginGoogle:active {
+  transform: translateY(0);
+}
+
+.loginDivider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.loginDivider::before,
+.loginDivider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--panel-border);
+}
+
+/* stacked: full-width name field, then a full-width guest button (the long
+   label was crushing the input when both shared a row) */
+.loginGuest {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.loginGuest input {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  padding: 0 14px;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
+}
+
+.loginGuest input::placeholder {
+  color: rgba(203, 197, 172, 0.55);
+}
+
+.loginGuest input:hover {
+  border-color: rgba(226, 187, 97, 0.45);
+}
+
+.loginGuest input:focus-visible {
+  outline: none;
+  border-color: rgba(226, 187, 97, 0.85);
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 0 0 3px rgba(226, 187, 97, 0.18);
+}
+
+.loginGuest button {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.loginGuest button:hover {
+  border-color: rgba(226, 187, 97, 0.7);
+  background: rgba(35, 51, 34, 0.96);
+}

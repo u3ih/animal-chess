@@ -1,0 +1,350 @@
+type Achievement {
+  code: String!
+  unlocked: Boolean!
+  unlockedAt: DateTime
+  rewardCoins: Int!
+  rewardXp: Int!
+}
+
+type DailyStatus {
+  claimable: Boolean!
+  streak: Int!
+  nextMultiplier: Float!
+}
+
+"""Date with time (isoformat)"""
+scalar DateTime
+
+"""A private message between two friends."""
+type DirectMessage {
+  id: ID!
+  fromUserId: ID!
+  toUserId: ID!
+  body: String!
+  createdAt: DateTime!
+  readAt: DateTime
+}
+
+"""Unread private-message count from one friend."""
+type DmUnread {
+  friendId: ID!
+  count: Int!
+}
+
+type Friend {
+  user: User!
+  online: Boolean!
+  inRoom: String
+}
+
+type FriendEvent {
+  kind: FriendEventKind!
+  request: FriendRequest
+  user: User
+  status: FriendRequestStatus
+}
+
+enum FriendEventKind {
+  REQUEST
+  ACCEPTED
+  RESOLVED
+}
+
+type FriendRequest {
+  id: ID!
+  fromUser: User!
+  toUser: User!
+  status: FriendRequestStatus!
+  createdAt: DateTime!
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+type LeaderboardEntry {
+  rank: Int!
+  user: User!
+  score: Int!
+  tier: Tier
+}
+
+enum LeaderboardKind {
+  ELO
+  COINS
+  LEVEL
+}
+
+"""An open, joinable room registered by the Node game server."""
+type LobbyRoom {
+  code: String!
+  hostName: String!
+  hostTier: Tier
+  occupancy: Int!
+  visibility: RoomVisibility!
+  createdAt: DateTime!
+}
+
+"""One row of the caller's match history."""
+type Match {
+  externalId: ID!
+  opponent: User
+  result: MatchResult!
+  reason: MatchReason
+  eloDelta: Int
+  coins: Int!
+  xp: Int!
+  endedAt: DateTime!
+}
+
+"""How a game ended."""
+enum MatchReason {
+  DEN
+  ELIMINATION
+  TIMEOUT
+  RESIGN
+}
+
+enum MatchResult {
+  WIN
+  LOSS
+  DRAW
+}
+
+"""The signed-in player's full profile aggregate."""
+type Me {
+  user: User!
+  rating: Rating
+  wallet: Wallet!
+  streaks: Streaks!
+}
+
+type Mutation {
+  """Change your display name (2–24 chars, must be unique)."""
+  updateUsername(username: String!): User!
+  sendFriendRequest(toUserId: ID = null, toUsername: String = null): FriendRequest!
+  respondFriendRequest(id: ID!, accept: Boolean!): FriendRequest!
+  cancelFriendRequest(id: ID!): Boolean!
+  removeFriend(userId: ID!): Boolean!
+
+  """Claim the once-per-day login bonus (idempotent per day)."""
+  claimDailyBonus: RewardResult!
+
+  """Claim a completed daily quest (idempotent)."""
+  claimQuest(questId: ID!): RewardResult!
+
+  """Send a private message to a friend (friends-only, ≤500 chars)."""
+  sendDirectMessage(toUserId: ID!, body: String!): DirectMessage!
+
+  """Mark every message from one friend as read."""
+  markDmRead(friendId: ID!): Boolean!
+
+  """Invite a friend to your current Node room (by room code)."""
+  sendRoomInvite(toUserId: ID!, roomCode: String!): Boolean!
+
+  """Buy a costume with coins (google-only, idempotent per costume)."""
+  purchaseCosmetic(cosmeticId: String!): PurchaseResult!
+}
+
+type PresenceEntry {
+  userId: String!
+  username: String!
+  roomId: String
+}
+
+"""Result of a cosmetic purchase; `coins` is the wallet balance after."""
+type PurchaseResult {
+  cosmeticId: String!
+  coins: Int!
+}
+
+type Query {
+  """
+  The signed-in player's profile, rank and wallet. Null for guests/anonymous.
+  """
+  me: Me
+
+  """Prefix-search google users by username (for adding friends)."""
+  searchUsers(query: String!, limit: Int! = 10): [User!]!
+  friends: [Friend!]!
+  friendRequests(incoming: Boolean! = true): [FriendRequest!]!
+
+  """Newest window of a private-chat thread, oldest→newest."""
+  directMessages(friendId: ID!, limit: Int! = 50, beforeId: ID = null): [DirectMessage!]!
+
+  """Unread private-message counts per friend."""
+  dmUnread: [DmUnread!]!
+  rankMe: Rating
+  leaderboard(kind: LeaderboardKind! = ELO, limit: Int! = 50): [LeaderboardEntry!]!
+
+  """Today's quests (lazily assigned on first read)."""
+  quests: [Quest!]!
+  achievements: [Achievement!]!
+  matches(limit: Int! = 20, beforeId: Int = null): [Match!]!
+  dailyStatus: DailyStatus!
+
+  """Open public rooms to join."""
+  lobby: [LobbyRoom!]!
+
+  """Cosmetic ids the signed-in player owns (paid costumes only)."""
+  ownedCosmetics: [String!]!
+}
+
+"""A daily quest. `code` maps to an i18n key on the web."""
+type Quest {
+  id: ID!
+  code: String!
+  kind: QuestKind!
+  progress: Int!
+  target: Int!
+  rewardCoins: Int!
+  rewardXp: Int!
+  completed: Boolean!
+  claimed: Boolean!
+}
+
+enum QuestKind {
+  WIN_GAMES
+  PLAY_GAMES
+  CAPTURE_PIECE
+  WIN_STREAK
+  LOGIN
+}
+
+type QuestUpdate {
+  questId: ID!
+  code: String!
+  progress: Int!
+  target: Int!
+  completed: Boolean!
+}
+
+"""Live ELO change after a ranked match."""
+type RankUpdate {
+  elo: Int!
+  tier: Tier!
+  division: Int
+  delta: Int!
+}
+
+"""Hidden ELO is shown to the owner only; others see tier + division."""
+type Rating {
+  elo: Int!
+  tier: Tier!
+  division: Int
+  games: Int!
+  wins: Int!
+  losses: Int!
+  draws: Int!
+  peakElo: Int!
+  leaderboardRank: Int
+}
+
+"""A 'you earned…' toast. `tier` is set for one-time tier promotions."""
+type RewardEvent {
+  source: String!
+  coins: Int!
+  xp: Int!
+  achievement: String
+  tier: Tier
+}
+
+"""Result of claiming a daily bonus or quest."""
+type RewardResult {
+  claimed: Boolean!
+  coins: Int!
+  xp: Int!
+  leveledUp: Boolean!
+  level: Int!
+  streak: Int
+  multiplier: Float
+}
+
+type RoomInvite {
+  fromUser: User!
+  roomCode: String!
+}
+
+enum RoomVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+type Streaks {
+  loginCurrent: Int!
+  loginLongest: Int!
+  winCurrent: Int!
+  winLongest: Int!
+}
+
+type Subscription {
+  """Online players (initial snapshot, then live updates)."""
+  presence: [PresenceEntry!]!
+
+  """Incoming friend requests / accepts."""
+  friendEvents: FriendEvent!
+
+  """Room invites (carry a Node room code)."""
+  invites: RoomInvite!
+
+  """Live ELO/tier changes after ranked matches."""
+  rankUpdates: RankUpdate!
+
+  """Live coin/XP/level changes."""
+  walletUpdates: WalletUpdate!
+
+  """Live daily-quest progress."""
+  questUpdates: QuestUpdate!
+
+  """'You earned…' reward + achievement + tier-promotion toasts."""
+  rewardToasts: RewardEvent!
+
+  """Private messages involving the caller (both directions)."""
+  directMessageEvents: DirectMessage!
+
+  """Open public lobby rooms (live)."""
+  lobbyUpdates: [LobbyRoom!]!
+}
+
+"""Visible rank tier derived from hidden ELO."""
+enum Tier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
+  MASTER
+  GRANDMASTER
+}
+
+"""A player. Guests expose only a username; rank is google-only."""
+type User {
+  id: ID!
+  kind: UserKind!
+  username: String!
+  image: String
+  isRanked: Boolean!
+}
+
+"""How a player authenticates."""
+enum UserKind {
+  GOOGLE
+  GUEST
+}
+
+"""Soft currency, experience and account level."""
+type Wallet {
+  coins: Int!
+  xp: Int!
+  level: Int!
+}
+
+type WalletUpdate {
+  coins: Int!
+  xp: Int!
+  level: Int!
+  leveledUp: Boolean!
+}

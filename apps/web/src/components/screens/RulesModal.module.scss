@@ -1,0 +1,68 @@
+/* Rules modal content (rank table + terrain/win lists). Was `.rules-*` / `.rank-*` in globals.scss. */
+.rulesBody {
+  padding: 18px 20px;
+  display: grid;
+  gap: 22px;
+}
+
+.rulesBody h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: var(--gold);
+}
+
+.rulesBody p {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.rankTable {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.rankRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.rankChip {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #1c2114;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.rulesList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.rulesList li {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rulesList svg {
+  width: 18px;
+  flex: 0 0 18px;
+  color: var(--gold);
+  margin-top: 2px;
+}
