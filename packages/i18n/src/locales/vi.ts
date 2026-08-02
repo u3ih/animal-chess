@@ -74,7 +74,9 @@ const vi = {
     moveDown: "Đi xuống",
     moveLeft: "Sang trái",
     moveRight: "Sang phải",
-    panelsTitle: "Bảng điều khiển"
+    panelsTitle: "Bảng điều khiển",
+    quickActions: "Tiện ích",
+    selectKeyHint: "{{name}} · phím {{hotkey}}"
   },
   colors: {
     red: "Đỏ",
