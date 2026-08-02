@@ -9,7 +9,7 @@ import {
   type Player,
   type Position
 } from "@animal-chess/game-core";
-import { AdaptiveDpr, OrbitControls } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { memo, useEffect } from "react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
@@ -195,14 +195,17 @@ export const GameCanvas = memo(function GameCanvas({
   // ~30° tilt from vertical (y=13.86, z=±8 at distance ~16) keeps the whole board readable and
   // makes the arrow-pad easy to map to the grid. `cameraZ` flips it to the local player's side.
   return (
+    // No AdaptiveDpr / OrbitControls `regress`: r3f's regression dropped the renderer to
+    // `performance.min` (0.5) for the whole drag, so the board went visibly blurry while rotating,
+    // and each enter/leave of the regressed state resized the drawing buffer — the stutter that read
+    // as lag. A fixed, modest dpr ceiling is both sharp and cheap enough on mobile.
     <Canvas
       shadows="percentage"
       dpr={[1, 1.5]}
-      gl={{ alpha: true, antialias: true }}
+      gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
       camera={{ position: [0, 13.86, cameraZ(viewColor)], fov: 46 }}
       onCreated={() => requestAnimationFrame(() => onReady?.())}
     >
-      <AdaptiveDpr pixelated={false} />
       <CameraRig viewColor={viewColor} />
       <Scene
         state={state}
@@ -217,7 +220,6 @@ export const GameCanvas = memo(function GameCanvas({
       />
       <OrbitControls
         makeDefault
-        regress
         enablePan={false}
         enableDamping
         dampingFactor={0.08}

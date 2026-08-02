@@ -74,7 +74,9 @@ const en = {
     moveDown: "Move down",
     moveLeft: "Move left",
     moveRight: "Move right",
-    panelsTitle: "Panels"
+    panelsTitle: "Panels",
+    quickActions: "Quick actions",
+    selectKeyHint: "{{name}} · key {{hotkey}}"
   },
   colors: {
     red: "Red",

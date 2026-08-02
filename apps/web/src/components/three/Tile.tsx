@@ -2,7 +2,7 @@
 
 import type { Position } from "@animal-chess/game-core";
 import { type ThreeEvent, useFrame } from "@react-three/fiber";
-import { useMemo, useRef, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { FOUNDATION_Y, getTerrain, surfaceY, tileToWorld } from "./coords";
 import { getRingGeometry, UNIT_BOX } from "./shared-assets";
@@ -52,7 +52,8 @@ function TrapLightning() {
   );
 }
 
-export function Tile({
+/** memo: 63 of these mount, and Board3D re-renders on every legal-move/last-move change. */
+export const Tile = memo(function Tile({
   pos,
   interactive,
   onCellClick
@@ -114,9 +115,10 @@ export function Tile({
         />
       </mesh>
 
-      {/* stone column dropping to the shared foundation — exposes terrace sides & moat banks */}
+      {/* stone column dropping to the shared foundation — exposes terrace sides & moat banks.
+          No `receiveShadow`: the sides are almost never lit into shadow, and skipping 63 extra
+          shadow-receiving materials is measurable while orbiting. */}
       <mesh
-        receiveShadow
         position={[0, (-TOP_H + columnBottom) / 2, 0]}
         scale={[0.96, -TOP_H - columnBottom, 0.96]}
         geometry={UNIT_BOX}
@@ -128,4 +130,4 @@ export function Tile({
       {terrain === "trap-red" || terrain === "trap-blue" ? <TrapLightning /> : null}
     </group>
   );
-}
+});

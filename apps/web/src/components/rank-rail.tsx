@@ -8,6 +8,7 @@ import {
   type PieceKind,
   type Player
 } from "@animal-chess/game-core";
+import { useTranslation } from "@animal-chess/i18n";
 import { cx } from "@animal-chess/ui";
 import { memo } from "react";
 import { PieceAvatar } from "./piece-avatar";
@@ -35,6 +36,7 @@ export const RankRail = memo(function RankRail({
   pieceLabels: Record<PieceKind, string>;
   onSelect: (piece: Piece) => void;
 }) {
+  const { t } = useTranslation();
   const canSelect = state.status.state === "playing" && state.turn === owner && localColor === owner;
 
   return (
@@ -49,7 +51,12 @@ export const RankRail = memo(function RankRail({
             className={cx(styles.rankCell, !piece && styles.defeated, piece?.id === selectedPieceId && styles.selected)}
             disabled={!piece || !canSelect}
             onClick={() => piece && onSelect(piece)}
-            title={pieceLabels[kind]}
+            // Only your own rail advertises the 1–8 shortcut; the opponent's numbers aren't bound to keys.
+            title={
+              canSelect
+                ? t("game.selectKeyHint", { name: pieceLabels[kind], hotkey: String(PIECE_RANK[kind]) })
+                : pieceLabels[kind]
+            }
           >
             <span className={styles.rankAvatar}>
               <PieceAvatar kind={kind} />

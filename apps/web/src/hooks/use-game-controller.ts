@@ -200,14 +200,30 @@ export function useGameController() {
     if (liveState.status.state === "won") hapticsRef.current.win();
   }, [liveState.status.state]);
 
-  // Latest-ref so the keyboard listener binds once but always calls the current handler.
+  // Latest-refs so the keyboard listener binds once but always calls the current handlers.
   const moveDirRef = useRef<(dir: Dir) => void>(() => {});
+  const selectRankRef = useRef<(rank: number) => void>(() => {});
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      // Leave browser/OS shortcuts (Cmd+1 = switch tab, etc.) and anything the user is typing alone —
+      // the in-game chat and username fields are on the same screen as the board.
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.isContentEditable) return;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
       const dir = ARROW_KEY[event.key];
-      if (!dir) return;
-      event.preventDefault();
-      moveDirRef.current(dir);
+      if (dir) {
+        event.preventDefault();
+        moveDirRef.current(dir);
+        return;
+      }
+      // 1–8 pick your piece by rank, matching the numbers printed on the rank rail.
+      if (event.key >= "1" && event.key <= "8" && event.key.length === 1) {
+        event.preventDefault();
+        selectRankRef.current(Number(event.key));
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -298,6 +314,20 @@ export function useGameController() {
     audio.select();
     haptics.select();
   }
+
+  /**
+   * Pick one of your own pieces by its rank (1 = rat … 8 = elephant) — the number printed on the rank
+   * rail, so the keyboard shortcut and the rail read the same. A captured piece is simply a no-op.
+   * `selectPiece` still owns the status/turn/ownership guards.
+   */
+  function selectPieceByRank(rank: number) {
+    if (!localColor) return;
+    const kind = PIECE_ORDER.find((item) => PIECE_RANK[item] === rank);
+    if (!kind) return;
+    const piece = liveState.pieces.find((item) => item.owner === localColor && item.kind === kind);
+    if (piece) selectPiece(piece);
+  }
+  selectRankRef.current = selectPieceByRank;
 
   // Stable identity for the board's click handler so the memoized 3D Canvas / RankRail won't
   // re-render on every clock tick (the clock lives in an external store, not the game state).
