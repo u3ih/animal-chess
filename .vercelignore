@@ -1,6 +1,0 @@
-# Trim the upload for `vercel` CLI deploys. Only infra that the serverless build never reads —
-# workspace packages (services/api included) must stay, or `pnpm install --frozen-lockfile` fails.
-docker-compose.yml
-docker-compose.prod.yml
-Caddyfile
-.env.production.example

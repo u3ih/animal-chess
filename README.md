@@ -164,15 +164,18 @@ browser ──▶ Vercel            (Next.js pages, NextAuth, /api/token)
 
 ### 1. Import the repo
 
-Import the project on Vercel with **Root Directory = repository root** (not `apps/web`).
-[vercel.json](vercel.json) already pins the monorepo build:
+Import the project on Vercel and set **Root Directory = `apps/web`** (*Settings → General*), leaving
+*Include files outside the root directory* on — the app imports `packages/*` as raw TypeScript.
+Vercel then detects the pnpm workspace, installs from the repo root, and runs `next build` inside
+`apps/web`, so **Build Command / Install Command / Output Directory must all stay on Default**.
+Overriding Output Directory with a repo-relative path (`apps/web/.next`) resolves *against* the root
+directory and fails with `not found at .../apps/web/apps/web/.next`.
+
+[apps/web/vercel.json](apps/web/vercel.json) only pins the framework:
 
 ```json
 {
-  "framework": "nextjs",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @animal-chess/web build",
-  "outputDirectory": "apps/web/.next"
+  "framework": "nextjs"
 }
 ```
 

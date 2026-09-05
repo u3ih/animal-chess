@@ -8,8 +8,39 @@
  * the in-app rules modal copy 1:1 — see `public/llms.txt` for the crawler-facing summary.
  */
 
+const DEFAULT_SITE_URL = "https://chess.u3ih.io.vn";
+
+/**
+ * Canonical origin, resolved at build time. `??` is not enough here: an env var declared but left
+ * blank (easy to do in the Vercel dashboard) yields `""`, and `new URL("")` throws during
+ * `next build`. Order: explicit override → Vercel's own deployment URL (so previews are
+ * self-canonical) → the production domain.
+ */
+function resolveSiteUrl(): string {
+  const candidates = [
+    process.env.NEXT_PUBLIC_SITE_URL,
+    // Vercel's system env vars — bare hosts, no scheme. The NEXT_PUBLIC_ copies are the ones
+    // that survive into a client bundle, should this module ever be imported from one.
+    process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    process.env.NEXT_PUBLIC_VERCEL_URL,
+    process.env.VERCEL_URL
+  ];
+  for (const candidate of candidates) {
+    const value = candidate?.trim();
+    if (!value) continue;
+    const withScheme = /^https?:\/\//.test(value) ? value : `https://${value}`;
+    try {
+      return new URL(withScheme).origin;
+    } catch {
+      // Malformed value — fall through to the next candidate.
+    }
+  }
+  return DEFAULT_SITE_URL;
+}
+
 /** Production origin (custom domain). Overridable per deployment/preview. */
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://chess.u3ih.io.vn").replace(/\/+$/, "");
+export const SITE_URL = resolveSiteUrl();
 
 export const SITE_NAME = "Animal Chess";
 export const SITE_ALTERNATE_NAMES = ["Cờ Thú", "Dou Shou Qi", "Jungle Chess", "斗兽棋"];

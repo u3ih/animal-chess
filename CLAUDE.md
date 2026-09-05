@@ -88,7 +88,7 @@ In-memory `Map`s: `rooms` + matchmaking `queue`. **A server restart wipes all li
 - **Profiles now live in Postgres** (Python), not `apps/web/.data/profiles.json`. The legacy `profile-store.ts` + `/api/profile` route are superseded by the GraphQL `me`/`updateUsername`/`friends` operations (username rules ported to `services/api/app/services/validation.py`).
 
 ### Deployment
-- **Vercel** ([vercel.json](vercel.json)) hosts the Next app only — serverless can't hold a WebSocket, so `server.ts` (Socket.IO) and the Python API run elsewhere and the client reaches them via `NEXT_PUBLIC_GAME_URL` / `NEXT_PUBLIC_API_URL`. Root Directory is the repo root; build is `pnpm --filter @animal-chess/web build` → `apps/web/.next`. `@vercel/analytics` is mounted in [layout.tsx](apps/web/src/app/layout.tsx).
+- **Vercel** ([apps/web/vercel.json](apps/web/vercel.json)) hosts the Next app only — serverless can't hold a WebSocket, so `server.ts` (Socket.IO) and the Python API run elsewhere and the client reaches them via `NEXT_PUBLIC_GAME_URL` / `NEXT_PUBLIC_API_URL`. Root Directory is `apps/web` and every build setting stays on Default (Vercel detects the pnpm workspace itself); path-prefixed overrides resolve against the root dir and double up. `@vercel/analytics` is mounted in [layout.tsx](apps/web/src/app/layout.tsx).
 - **Docker VPS** (`docker-compose.prod.yml` + `Caddyfile`) runs the full stack same-origin — leave `NEXT_PUBLIC_GAME_URL` empty there.
 - `NEXT_PUBLIC_STATIC=1` still builds the server-less AI-only export (`output: "export"`); GitHub Pages is no longer a deploy target.
 
