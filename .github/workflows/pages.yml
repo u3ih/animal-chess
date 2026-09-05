@@ -66,10 +66,16 @@ jobs:
         run: pnpm --filter @animal-chess/web build
         env:
           NEXT_PUBLIC_STATIC: "1"
-          NEXT_PUBLIC_BASE_PATH: /animal-chess
+          # No NEXT_PUBLIC_BASE_PATH: the custom domain chess.u3ih.io.vn serves the
+          # site at "/", not at "/animal-chess". Setting it would 404 every asset.
 
       - name: Disable Jekyll (serve _next/*)
         run: touch apps/web/out/.nojekyll
+
+      # Artifact deploys replace the whole site, so the CNAME file the Pages UI
+      # wrote is not preserved — without this the custom domain resets each deploy.
+      - name: Custom domain
+        run: echo "chess.u3ih.io.vn" > apps/web/out/CNAME
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

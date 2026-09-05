@@ -1,11 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" role="img" aria-label="Animal Chess">
   <title>Animal Chess</title>
-  <rect width="32" height="32" rx="7" fill="#1f6b3a"/>
-  <g fill="#f4e3b2">
-    <ellipse cx="16" cy="20.5" rx="6.2" ry="5"/>
-    <circle cx="8.5" cy="12.5" r="2.6"/>
-    <circle cx="13.2" cy="8.5" r="2.6"/>
-    <circle cx="18.8" cy="8.5" r="2.6"/>
-    <circle cx="23.5" cy="12.5" r="2.6"/>
+  <rect width="32" height="32" rx="7" fill="#16301f"/>
+  <!-- Tiger head, in the same palette as <PieceAvatar kind="tiger" />. Detail is deliberately
+       coarser than the in-app avatar: at a 16px tab size, thin stripes blur into a solid blob. -->
+  <g transform="translate(1.28 1.16) scale(0.92)">
+    <circle cx="8" cy="9" r="4.2" fill="#e08234"/>
+    <circle cx="24" cy="9" r="4.2" fill="#e08234"/>
+    <circle cx="8" cy="9" r="1.9" fill="#7d3f12"/>
+    <circle cx="24" cy="9" r="1.9" fill="#7d3f12"/>
+    <circle cx="16" cy="17" r="10" fill="#e08234"/>
+    <ellipse cx="16" cy="21.2" rx="6.8" ry="5.2" fill="#ffd79a"/>
+    <g stroke="#34200f" stroke-width="2.2" stroke-linecap="round">
+      <path d="M16 8v3.6M11 10.2 12.4 13.2M21 10.2 19.6 13.2"/>
+      <path d="M6.4 16.4 9.6 17.2M25.6 16.4 22.4 17.2"/>
+    </g>
+    <circle cx="11.3" cy="15.6" r="1.9" fill="#1a120e"/>
+    <circle cx="20.7" cy="15.6" r="1.9" fill="#1a120e"/>
+    <circle cx="11.9" cy="15" r="0.6" fill="#ffffff"/>
+    <circle cx="21.3" cy="15" r="0.6" fill="#ffffff"/>
+    <path d="M14 20.4 16 22.4 18 20.4" stroke="#1a120e" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 </svg>
