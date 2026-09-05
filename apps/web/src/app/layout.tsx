@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Roboto } from "next/font/google";
 import "./tailwind.css";
@@ -14,7 +15,7 @@ import {
 } from "@/lib/seo";
 import { Providers } from "./providers";
 
-// Self-hosted at build time (works for the GitHub Pages static export too).
+// Self-hosted at build time (works for the static export too).
 // Vietnamese subset included since `vi` is the default UI language.
 const roboto = Roboto({
   subsets: ["latin", "vietnamese"],
@@ -81,8 +82,8 @@ export const viewport: Viewport = {
   viewportFit: "cover"
 };
 
-// Prefix the CSS backdrop with basePath so it resolves under the GitHub Pages
-// subpath (e.g. /animal-chess/assets/...). Empty for the normal build.
+// Prefix the CSS backdrop with basePath so it resolves when the app is served under a
+// subpath (e.g. /animal-chess/assets/...). Empty for the normal build and for Vercel.
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -91,6 +92,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body style={{ "--bg-image": `url(${basePath}/assets/jungle-backdrop.png)` } as React.CSSProperties}>
         <JsonLd />
         <Providers>{children}</Providers>
+        {/* Vercel Web Analytics — no-ops outside a Vercel deployment. */}
+        <Analytics />
       </body>
     </html>
   );

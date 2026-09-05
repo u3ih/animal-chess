@@ -3,7 +3,7 @@ import { SITE_URL } from "@/lib/seo";
 
 /**
  * Social preview card. A route handler (not the `opengraph-image` metadata convention) so the
- * emitted file keeps its `.png` extension — GitHub Pages serves by extension, and an
+ * emitted file keeps its `.png` extension — static hosts serve by extension, and an
  * extensionless file would reach scrapers as octet-stream and be dropped.
  */
 export const dynamic = "force-static";

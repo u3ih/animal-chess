@@ -8,7 +8,7 @@
  * the in-app rules modal copy 1:1 — see `public/llms.txt` for the crawler-facing summary.
  */
 
-/** Production origin (GitHub Pages custom domain). Overridable for previews. */
+/** Production origin (custom domain). Overridable per deployment/preview. */
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://chess.u3ih.io.vn").replace(/\/+$/, "");
 
 export const SITE_NAME = "Animal Chess";

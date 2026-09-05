@@ -79,13 +79,18 @@ In-memory `Map`s: `rooms` + matchmaking `queue`. **A server restart wipes all li
 ### Online backend split (hybrid)
 - **Node** = live game authority (move validation via game-core, clock, in-room chat, rematch, lobby room existence).
 - **Python** ([services/api](services/api)) = persistent + social + discovery via **GraphQL** (public `/graphql`, internal `/internal/graphql`). Subscriptions (presence, friend events, invites, lobby, rank/wallet/quest updates, reward toasts) fan out over Redis pub/sub.
-- The web client opens **two connections**: the Node game socket ([useOnlineGame](apps/web/src/hooks/use-online-game.ts)) and the Python GraphQL client ([useSocial](apps/web/src/hooks/use-social.ts), via [lib/gql.ts](apps/web/src/lib/gql.ts) — `fetch` for queries/mutations + `graphql-ws` for subscriptions). Both early-return under `STATIC_EXPORT` (GitHub Pages stays AI-only).
+- The web client opens **two connections**: the Node game socket ([useOnlineGame](apps/web/src/hooks/use-online-game.ts) — same origin by default, or `NEXT_PUBLIC_GAME_URL` when the game server is on another host) and the Python GraphQL client ([useSocial](apps/web/src/hooks/use-social.ts), via [lib/gql.ts](apps/web/src/lib/gql.ts) — `fetch` for queries/mutations + `graphql-ws` for subscriptions). Both early-return under `STATIC_EXPORT` (the server-less AI-only export).
 - The engine stays the single TS source of truth: Python does **not** re-implement game rules — it only ingests finished-match results from Node.
 
 ### Identity & profiles
 - [usePlayerIdentity](apps/web/src/hooks/use-player-identity.ts): Google (NextAuth JWT, `userId` = email) **or** guest (random uuid in `localStorage`).
 - **Auth across services**: Python decodes the **NextAuth v4 session JWE** with the shared `NEXTAUTH_SECRET` (`services/api/app/core/security.py` — `dir`+`A256GCM`, HKDF-derived key; pin `next-auth@4.x`). The client fetches the raw JWE from [/api/token](apps/web/src/app/api/token/route.ts) and passes it as a bearer (HTTP) / `connectionParams.authToken` (WS). **Guests are ephemeral** — no DB row, no rank/rewards (anti-farm). Any guest in a match makes it unranked and awards nothing to anyone.
 - **Profiles now live in Postgres** (Python), not `apps/web/.data/profiles.json`. The legacy `profile-store.ts` + `/api/profile` route are superseded by the GraphQL `me`/`updateUsername`/`friends` operations (username rules ported to `services/api/app/services/validation.py`).
+
+### Deployment
+- **Vercel** ([vercel.json](vercel.json)) hosts the Next app only — serverless can't hold a WebSocket, so `server.ts` (Socket.IO) and the Python API run elsewhere and the client reaches them via `NEXT_PUBLIC_GAME_URL` / `NEXT_PUBLIC_API_URL`. Root Directory is the repo root; build is `pnpm --filter @animal-chess/web build` → `apps/web/.next`. `@vercel/analytics` is mounted in [layout.tsx](apps/web/src/app/layout.tsx).
+- **Docker VPS** (`docker-compose.prod.yml` + `Caddyfile`) runs the full stack same-origin — leave `NEXT_PUBLIC_GAME_URL` empty there.
+- `NEXT_PUBLIC_STATIC=1` still builds the server-less AI-only export (`output: "export"`); GitHub Pages is no longer a deploy target.
 
 ## Conventions
 - **Biome** (not ESLint/Prettier): 2-space indent, line width 120, double quotes, semicolons, no trailing commas. Run `pnpm lint:fix` before finishing.

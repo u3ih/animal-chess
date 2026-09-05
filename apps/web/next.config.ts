@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
-// Static export (output: "export") powers the AI-only GitHub Pages build.
-// Gated by env so the default `pnpm build` / custom-server build is unchanged.
+// Static export (output: "export") powers the server-less, AI-only build.
+// Gated by env so the default `pnpm build` (Vercel + custom server) is unchanged.
 const staticExport = process.env.NEXT_PUBLIC_STATIC === "1";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 

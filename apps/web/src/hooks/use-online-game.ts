@@ -10,7 +10,7 @@ import type {
 import { useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import { setClock } from "../lib/clock-store";
-import { STATIC_EXPORT } from "../lib/flags";
+import { GAME_SERVER_URL, STATIC_EXPORT } from "../lib/flags";
 import { safeRandomUUID } from "../lib/uuid";
 import type { PlayerIdentity } from "./use-player-identity";
 
@@ -43,9 +43,13 @@ export function useOnlineGame(identity?: PlayerIdentity) {
   const player = identity ?? fallbackIdentity;
 
   useEffect(() => {
-    // Static GitHub Pages build has no Socket.IO server — never dial it.
+    // The static build has no Socket.IO server — never dial it.
     if (STATIC_EXPORT) return;
-    const nextSocket: GameSocket = io();
+    // Same origin for the self-hosted build; an explicit origin on Vercel, where the game
+    // server lives on another host (`withCredentials` so the auth cookie rides along).
+    const nextSocket: GameSocket = GAME_SERVER_URL
+      ? io(GAME_SERVER_URL, { withCredentials: true, transports: ["websocket", "polling"] })
+      : io();
     nextSocket.on("connect", () => setStatus("onlineStatus.connected"));
     nextSocket.on("matchmaking:waiting", () => setStatus("onlineStatus.waiting"));
     nextSocket.on("game:snapshot", (payload: RoomSnapshot) => {

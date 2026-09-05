@@ -142,11 +142,64 @@ GraphQL subscriptions; the daily bonus is claimable once per day; friends persis
 
 ---
 
-## AI-only build (GitHub Pages)
+## AI-only build (static export)
 
 `NEXT_PUBLIC_STATIC=1 pnpm --filter @animal-chess/web build` produces a static, server-less export
 (single-player vs AI only). Online play, social, lobby, and the GraphQL client are disabled in that
-build — it needs no backend.
+build — it needs no backend. Serve `apps/web/out/` from any static host.
+
+---
+
+## Production deploy (Vercel)
+
+Vercel hosts the **Next.js app only**. It cannot host the Socket.IO game server: `server.ts` needs a
+long-lived process, and Vercel functions don't hold WebSockets. So online play needs the Node game
+server + the Python GraphQL backend running elsewhere — the Docker VPS stack below covers both.
+
+```
+browser ──▶ Vercel            (Next.js pages, NextAuth, /api/token)
+        ├─▶ NEXT_PUBLIC_GAME_URL  (Node Socket.IO game server — VPS)
+        └─▶ NEXT_PUBLIC_API_URL   (Python GraphQL — VPS)
+```
+
+### 1. Import the repo
+
+Import the project on Vercel with **Root Directory = repository root** (not `apps/web`).
+[vercel.json](vercel.json) already pins the monorepo build:
+
+```json
+{
+  "framework": "nextjs",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm --filter @animal-chess/web build",
+  "outputDirectory": "apps/web/.next"
+}
+```
+
+The root `package.json` declares `engines.node: ">=26"`. If Vercel rejects that range, set the
+project's **Node.js Version** to the newest one it offers in *Settings → General*.
+
+### 2. Environment variables (Settings → Environment Variables)
+
+| Variable | Value |
+| --- | --- |
+| `NEXTAUTH_URL` | `https://<your-vercel-domain>` |
+| `NEXTAUTH_SECRET` | same value as the backend's — Python decodes the session JWE with it |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth credentials |
+| `NEXT_PUBLIC_GAME_URL` | public origin of the Node game server, e.g. `https://game.example.com` |
+| `NEXT_PUBLIC_API_URL` | public origin of the Python GraphQL backend |
+| `NEXT_PUBLIC_SITE_URL` | canonical site origin (SEO metadata, sitemap, JSON-LD) |
+
+Add the Vercel domain to the Google OAuth **Authorized redirect URIs**
+(`https://<domain>/api/auth/callback/google`).
+
+Leave `NEXT_PUBLIC_STATIC` unset — setting it to `1` compiles online + social out of the bundle.
+
+### 3. Analytics
+
+[@vercel/analytics](https://vercel.com/docs/analytics) is wired up in
+[apps/web/src/app/layout.tsx](apps/web/src/app/layout.tsx). Enable **Analytics** in the Vercel
+project once and data flows in; the component no-ops on localhost and on non-Vercel hosts.
 
 ---
 
@@ -227,6 +280,9 @@ docker compose --env-file .env.production -f docker-compose.prod.yml logs -f web
 
 ## Troubleshooting
 
+- **Online mode never connects on Vercel** — `NEXT_PUBLIC_GAME_URL` is unset (the client then
+  dials the Vercel origin, which runs no Socket.IO server) or points at a host without HTTPS. It is
+  inlined at build time, so re-deploy after changing it.
 - **GraphQL calls 401 / `unauthenticated`** — `NEXTAUTH_SECRET` differs between the two `.env`
   files, or you're a guest hitting a Google-only field. Make the secrets match; sign in with Google.
 - **Rank/coins never change after a game** — `INTERNAL_SYNC_SECRET` mismatch, or the Python backend
