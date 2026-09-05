@@ -9,11 +9,7 @@ import {
   ArrowRight,
   ArrowUp,
   Headphones,
-  HelpCircle,
-  Home as HomeIcon,
   LayoutPanelLeft,
-  LogIn,
-  LogOut,
   MapPin,
   Move,
   RefreshCw,
@@ -21,10 +17,6 @@ import {
   Swords,
   Undo2,
   UserRound,
-  Vibrate,
-  VibrateOff,
-  Volume2,
-  VolumeX,
   X
 } from "lucide-react";
 import { signIn, signOut, useSession } from "next-auth/react";
@@ -35,8 +27,8 @@ import { ChatPanel } from "@/components/chat-panel";
 import { CostumeShop } from "@/components/costume-shop";
 import { DmChat } from "@/components/dm-chat";
 import { FriendListPanel } from "@/components/friend-list-panel";
+import { type AuthAction, GameActions } from "@/components/game-actions";
 import { InGameChat } from "@/components/in-game-chat";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { PlayerBadge } from "@/components/player-badge";
 import { ProfilePanel } from "@/components/profile-panel";
 import { RankLadder } from "@/components/rank-ladder";
@@ -50,6 +42,7 @@ import { RulesModal } from "@/components/screens/RulesModal";
 import { WinOverlay } from "@/components/screens/WinOverlay";
 import { useCostumes } from "@/hooks/use-costumes";
 import { PIECE_ORDER, useGameController } from "@/hooks/use-game-controller";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { STATIC_EXPORT } from "@/lib/flags";
 import styles from "./page.module.scss";
 
@@ -62,6 +55,9 @@ export default function Home() {
   // Avoid a hydration mismatch: localStorage guest + session both resolve only on the client.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  // Same breakpoint the stylesheet uses to turn `.rails` into a bottom sheet: below it the footer sits
+  // under a viewport-tall board, so its actions move into the drawer instead of being scrolled to.
+  const compact = useMediaQuery("(max-width: 1180px)");
   const game = useGameController();
   const {
     screen,
@@ -113,6 +109,26 @@ export default function Home() {
   const youName = identity?.username ?? session?.user?.name ?? t("common.you");
   const foeSlot = online.snapshot?.players.find((slot) => slot.color === foeColor);
   const foeName = mode === "ai" ? t("game.machine") : (foeSlot?.username ?? t("game.opponent"));
+  const authAction: AuthAction = session?.user
+    ? "sign-out-google"
+    : identity?.kind === "guest"
+      ? "sign-out-guest"
+      : "sign-in";
+  const actionProps = {
+    audioEnabled,
+    hapticsEnabled,
+    hapticsSupported,
+    authAction,
+    onMenu: goMenu,
+    onShowRules: () => setShowRules(true),
+    onToggleAudio: () => setAudioEnabled((value) => !value),
+    onToggleHaptics: () => setHapticsEnabled(!hapticsEnabled),
+    onAuth: () => {
+      if (authAction === "sign-in") void signIn("google");
+      else if (authAction === "sign-out-guest") signOutGuest();
+      else void signOut();
+    }
+  };
 
   // Hold the splash until the client resolves identity (NextAuth session + localStorage guest).
   if (!mounted || sessionStatus === "loading") {
@@ -283,6 +299,12 @@ export default function Home() {
             </span>
             <IconButton label={t("common.close")} icon={<X />} onClick={() => setDrawerOpen(false)} />
           </div>
+          {compact ? (
+            <aside className="side-panel">
+              <span className="panel-title">{t("game.quickActions")}</span>
+              <GameActions className={styles.drawerActions} {...actionProps} />
+            </aside>
+          ) : null}
           <aside className="side-panel">
             <div className="control-stack">
               <div className="mode-tabs" role="tablist" aria-label={t("game.modeTabs")}>
@@ -411,10 +433,10 @@ export default function Home() {
         {STATIC_EXPORT ? null : <RewardToasts toasts={social.toasts} onDismiss={social.dismissToast} />}
       </section>
 
-      <footer className={cx(styles.topbar, styles.footerBar)}>
+      {/* Compact viewports get this cluster inside the panels drawer instead — see `compact` above. */}
+      <footer className={cx(styles.topbar, styles.footerBar, compact && styles.footerHidden)}>
         <p className="eyebrow">{t("game.eyebrow")}</p>
-        <div className={styles.topbarActions}>
-          <LanguageSwitcher />
+        <div className={styles.footerRight}>
           {mode === "online" && foeSlot ? (
             // biome-ignore lint/a11y/useSemanticElements: visual grouping; <fieldset> would break the flex layout and need a legend
             <div className={styles.footerFaceoff} role="group" aria-label={t("game.faceoff")}>
@@ -442,29 +464,8 @@ export default function Home() {
                 <span className={styles.faceoffName}>{foeName}</span>
               </span>
             </div>
-          ) : (
-            <IconButton label={t("game.backToMenu")} icon={<HomeIcon />} onClick={goMenu} />
-          )}
-          <IconButton label={t("game.rules")} icon={<HelpCircle />} onClick={() => setShowRules(true)} />
-          <IconButton
-            label={t("game.toggleSound")}
-            icon={audioEnabled ? <Volume2 /> : <VolumeX />}
-            onClick={() => setAudioEnabled((value) => !value)}
-          />
-          {hapticsSupported ? (
-            <IconButton
-              label={t("game.toggleHaptics")}
-              icon={hapticsEnabled ? <Vibrate /> : <VibrateOff />}
-              onClick={() => setHapticsEnabled(!hapticsEnabled)}
-            />
           ) : null}
-          {STATIC_EXPORT ? null : session?.user ? (
-            <IconButton label={t("game.signOut")} icon={<LogOut />} onClick={() => signOut()} />
-          ) : identity?.kind === "guest" ? (
-            <IconButton label={t("game.exitGuest")} icon={<LogOut />} onClick={signOutGuest} />
-          ) : (
-            <IconButton label={t("game.signInGoogle")} icon={<LogIn />} onClick={() => signIn("google")} />
-          )}
+          <GameActions className={styles.topbarActions} {...actionProps} />
         </div>
       </footer>
 

@@ -2,6 +2,8 @@
 .gameShell {
   min-height: 100vh;
   padding: 20px;
+  /* clears the fixed panels toggle (bottom-left) so it never sits on top of the footer's eyebrow */
+  padding-bottom: 84px;
   background:
     linear-gradient(180deg, rgba(6, 9, 6, 0.28), rgba(6, 9, 6, 0.82)),
     var(--bg-image, url("/assets/jungle-backdrop.png")) center / cover fixed;
@@ -31,8 +33,10 @@
   line-height: 1;
 }
 
-.topbarActions {
+.topbarActions,
+.footerRight {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
@@ -46,6 +50,34 @@
 
 .footerBar {
   margin: 18px auto 0;
+}
+
+/* The footer's actions are re-hosted inside the panels drawer below 1180px (see `compact` in page.tsx).
+   `display: none` rather than a media query so the two never render at once. */
+.footerHidden {
+  display: none;
+}
+
+/* Same cluster inside the drawer: wraps instead of overflowing the narrow sheet. */
+.drawerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.drawerActions button {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+}
+
+/* own row, so the icon buttons below it always land on a single line in the narrow sheet */
+.drawerActions select {
+  min-height: 44px;
+  flex: 1 1 100%;
 }
 
 .footerFaceoff {
@@ -244,7 +276,9 @@
 .boardDpad {
   position: fixed;
   right: 26px;
-  bottom: 26px;
+  /* clears the footer's action row, which shares this corner (the row is hidden below 1180px — see the
+     media query, where the pad drops back down). */
+  bottom: 84px;
   z-index: 50;
   display: grid;
   grid-template-columns: repeat(3, 44px);
@@ -323,13 +357,16 @@
 
 @media (max-width: 1180px) {
   .arena { grid-template-columns: 1fr; }
+  /* footer actions moved into the drawer here, so the corner is free again */
+  .boardDpad { bottom: calc(26px + env(safe-area-inset-bottom)); }
   .boardStage { overflow-x: visible; --board-width: min(900px, calc(100vw - 40px)); }
   .board3d { width: var(--board-width); height: min(80vh, calc(var(--board-width) * 1.18)); }
   .rails { top: auto; left: 0; right: 0; width: auto; max-height: 86vh; border-left: 0; border-top: 1px solid var(--panel-border); border-radius: 18px 18px 0 0; box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.55); transform: translateY(105%); }
   .rails.open { transform: none; }
 }
 @media (max-width: 720px) {
-  .gameShell { padding: 12px; }
+  .gameShell { padding: 12px; padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .drawerToggle { bottom: calc(18px + env(safe-area-inset-bottom)); }
   .boardStage { --board-width: calc(100vw - 24px); }
   .board3d { height: 72vh; }
   .topbar { align-items: flex-start; }
